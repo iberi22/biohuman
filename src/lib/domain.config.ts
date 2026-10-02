@@ -1,8 +1,11 @@
 export const domainConfig = {
   appId: 'swal-training',
-  appName: 'swal-training',
+  appName: 'SWAL Training',
   instanceId: 'default',
   entities: [
+    { name: "preferences", label: "Ajustes", fields: ["payload"], xavierKind: "preferences" },
+    { name: "active-session", label: "Sesión activa", fields: ["payload"], xavierKind: "active-session" },
+    { name: "dietary-profile", label: "Perfil dietario", fields: ["payload"], xavierKind: "dietary-profile" },
     {
         name: "exercise",
         label: "Exercise",
