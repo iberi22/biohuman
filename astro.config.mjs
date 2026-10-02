@@ -18,7 +18,7 @@ export default defineConfig({
     // optimizeDeps.exclude". Se excluye la integracion de Svelte del optimizador y el arranque queda
     // estable (necesario para `hermes verify` y para cualquier dev local de este template).
     optimizeDeps: {
-      exclude: ['@astrojs/svelte/server.js', '@astrojs/svelte'],
+      exclude: ['@astrojs/svelte/server.js', '@astrojs/svelte', '@astrojs/cloudflare/entrypoints/server', 'astro/logger/console'],
     },
     plugins: [
       VitePWA({
@@ -27,12 +27,12 @@ export default defineConfig({
         manifest: false,
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+          globIgnores: ['**/exercises/**'],
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\//, /^\/exercises\//],
           runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/api\.swal\.dev\/.*/i,
-              handler: 'NetworkFirst',
-              options: { cacheName: 'api', expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 } },
-            },
+            { urlPattern: /\/exercises\/.*\.svg$/, handler: 'CacheFirst', options: { cacheName: 'training-art-v1', expiration: { maxEntries: 906 } } },
+
           ],
         },
       }),

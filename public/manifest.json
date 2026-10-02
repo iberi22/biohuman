@@ -1,11 +1,11 @@
 {
-  "name": "swal-training",
-  "short_name": "swal-trainin",
-  "description": "SWAL App PWA — template canonico Astro + Svelte + @swal/ui + edge-mesh + Xavier + LLM",
+  "name": "SWAL Training",
+  "short_name": "Training",
+  "description": "Entrenamiento local-first: biblioteca, rutinas y progreso",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#06b6d4",
+  "background_color": "#FAF9F5",
+  "theme_color": "#1C1917",
   "orientation": "any",
   "icons": [
     {
