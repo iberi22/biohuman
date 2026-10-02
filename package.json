@@ -1,0 +1,38 @@
+{
+  "name": "swal-training",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SWAL App Template — Astro + Svelte 5 + @swal/ui + vite-pwa + edge-mesh + Xavier + LLM (scaffold canonico, copiar para crear apps)",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@swal/ui": "file:../../cores/swal-ui",
+    "@swal/vault": "file:../../cores/swal-vault",
+    "astro": "^7.3.1",
+    "idb": "8.0.3",
+    "y-indexeddb": "9.0.12",
+    "y-webrtc": "10.3.0",
+    "yjs": "13.6.32"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/cloudflare": "^14.3.0",
+    "@astrojs/svelte": "^9.0.1",
+    "@playwright/test": "1.63.0",
+    "autoprefixer": "10.5.4",
+    "jsdom": "30.0.1",
+    "postcss": "8.5.26",
+    "svelte": "^5.57.0",
+    "typescript": "^5.9.3",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "4.1.11"
+  }
+}

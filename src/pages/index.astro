@@ -1,0 +1,101 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { Button, Card, Badge, StatusBadge } from '@swal/ui';
+import AuiRenderer from '../components/AuiRenderer.svelte';
+import ProBadge from '../components/ProBadge.svelte';
+import CreditMeter from '../components/CreditMeter.svelte';
+import type { AuiSpec } from '../lib/aui';
+
+// Demo AUI spec (en prod viene de generateAui(prompt) si hay LLM + tier socio con credito)
+const demoAui: AuiSpec = {
+  version: 1,
+  copy: { title: 'Demo AUI — agente genera UI', subtitle: 'Si hay LLM + credito socio, el agente genera este JSON. Sino, cae a UI estatica.' },
+  components: [
+    { id: 'c1', type: 'Card', props: { variant: 'surface', padding: 'md', title: 'AUI Card 1', content: 'Generada por agente — whitelisteada @swal/ui' } },
+    { id: 'b1', type: 'Button', props: { variant: 'primary', label: 'Acción AUI' } },
+    { id: 'bd1', type: 'Badge', props: { variant: 'success', label: 'AUI whitelisteada' } },
+  ],
+};
+
+const stats = [
+  { label: 'Entidades', value: '2', variant: 'info' as const },
+  { label: 'Xavier', value: 'conectado', variant: 'success' as const },
+  { label: 'Mesh', value: 'swal/my-app', variant: 'warning' as const },
+  { label: 'LLM', value: 'stub', variant: 'neutral' as const },
+];
+---
+
+<Layout title="SWAL App Template — listo para clonar">
+  <div class="wrap">
+    <h1 class="title">SWAL <span class="accent">app-template</span> — scaffold canonico</h1>
+    <p class="sub">
+      Template separado en <code>cores/swal-app-template</code> (no toca <code>apps/gara-g</code> del otro agente).
+      Copia este folder, cambia <code>src/lib/domain.config.ts</code> y tu modelo de negocio queda conectado a LLM + Xavier + mesh.
+    </p>
+
+    <div class="stats">
+      {stats.map((s) => (
+        <Card variant="surface" padding="md">
+          <div class="stat"><Badge variant={s.variant}>{s.label}</Badge><span class="val">{s.value}</span></div>
+        </Card>
+      ))}
+    </div>
+
+    <div class="actions">
+      <Button variant="primary">pnpm create @swal/app</Button>
+      <Button variant="orange">Ver domain.config.ts</Button>
+      <Button variant="ghost">Conectar edge-hive</Button>
+    </div>
+
+    <div class="status">
+      <span class="lab">Capas:</span>
+      <StatusBadge status="healthy" /> <span>xavier app/my-app/instance/*</span>
+      <StatusBadge status="healthy" /> <span>mesh swal/my-app/*</span>
+      <StatusBadge status="warning" /> <span>llm (credito socio -> Cloudflare AI)</span>
+      <StatusBadge status="healthy" /> <span>billing 20% handling</span>
+      <ProBadge tier="socio" mode="swal-managed" client:load />
+    </div>
+
+    <CreditMeter used={12500} tier="socio" infra={0.5} aiBase={0.3} client:load />
+
+    <Card variant="elevated" padding="lg">
+      <h2>AUI — UI generada por agente (nuevo)</h2>
+      <p class="hint">Si hay LLM presente (local xavier-gpud u on-cloud via Workers AI con credito socio), el agente llama <code>generateAui(prompt)</code> y este renderer pinta el JSON whitelisteado. Sin LLM, se muestra UI estatica fallback.</p>
+      <AuiRenderer spec={demoAui} client:load />
+      <p class="hint">Whitelist: Card/Button/Badge/Input/Table/Tabs/Modal/StatusBadge/Skeleton — lockedKeys bloqueados. Costo AI: base Cloudflare + 10% min + 20% handling SWAL (ver <code>src/lib/billing.ts</code>).</p>
+    </Card>
+
+    <Card variant="elevated" padding="lg">
+      <h2>Crear una app nueva (2 comandos)</h2>
+      <ol>
+        <li><code>node cores/swal-app-template/scripts/create-app.mjs mi-app --target apps/mi-app</code></li>
+        <li><code>cd apps/mi-app && pnpm install && pnpm run build</code></li>
+      </ol>
+      <p class="hint">Coherente con: <code>apps/gara-g/.hermes/ola-swal-gara 03.01</code> + <code>apps/hosteler-ia/docs/plans/PLAN_MIGRACION_UI_CORE_ESQUELETO.md</code>. El otro agente sigue en gara-g sin conflicto.</p>
+      <h2 style="margin-top:1rem">Donde va tu modelo de negocio</h2>
+      <ul>
+        <li><code>src/lib/domain.config.ts</code> -> appId + entities[] (unico cambio obligatorio)</li>
+        <li><code>src/lib/</code> -> xavier.ts / mesh.ts / llm.ts ya cableados (GOAL #3 y #4)</li>
+        <li><code>src/components/</code> -> islas Svelte con @swal/ui (no crear UI local)</li>
+        <li><code>src/pages/</code> -> Astro file routing (index.astro, dashboard.astro...)</li>
+      </ul>
+    </Card>
+  </div>
+</Layout>
+
+<style>
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; display: grid; gap: 1.25rem; }
+  .title { font-size: 1.6rem; font-weight: 800; color: var(--swal-text); letter-spacing: -0.02em; }
+  .accent { color: var(--swal-accent); }
+  .sub { color: var(--swal-text-secondary); line-height: 1.6; }
+  .sub code { background: var(--swal-surface); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.9rem; }
+  .stat { display: flex; flex-direction: column; gap: 0.6rem; }
+  .val { font-size: 1.9rem; font-weight: 800; color: var(--swal-text); font-family: var(--swal-font-mono); }
+  .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .status { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; color: var(--swal-text-secondary); font-size: 0.9rem; }
+  .lab { color: var(--swal-text-muted); }
+  ol, ul { margin: 0; padding-left: 1.25rem; color: var(--swal-text-secondary); line-height: 1.8; }
+  h2 { font-size: 1.1rem; font-weight: 700; color: var(--swal-text); margin-bottom: 0.5rem; }
+  .hint { color: var(--swal-text-muted); font-size: 0.85rem; margin-top: 0.75rem; }
+</style>
