@@ -1,0 +1,302 @@
+Press de banca
+Press de banca inclinado
+Press inclinado con mancuernas
+Press de banca con mancuernas
+Press de banca declinado
+Press de pecho en máquina
+Aperturas en máquina
+Aperturas en polea
+Flexiones
+Flexiones con lastre
+Press militar
+Press sentado con mancuernas
+Press Arnold
+Elevaciones laterales
+Elevaciones laterales en polea
+Elevaciones frontales
+Aperturas para deltoides posteriores
+Aperturas inversas en máquina
+Face pull
+Remo al mentón
+Peso muerto
+Peso muerto rumano
+Remo con barra
+Remo en barra T
+Remo inclinado con mancuernas
+Remo con mancuerna a una mano
+Remo con pecho apoyado
+Remo sentado
+Remo en máquina
+Jalón al pecho
+Jalón al pecho con agarre cerrado
+Jalón con brazos rectos
+Dominadas
+Dominadas asistidas
+Dominadas con lastre
+Dominadas supinas
+Encogimientos de hombros
+Sentadilla con barra
+Sentadilla frontal
+Sentadilla hack
+Prensa de piernas
+Sentadilla búlgara
+Zancadas caminando
+Subida al banco
+Extensión de cuádriceps
+Curl femoral
+Curl femoral sentado
+Hip thrust
+Puente de glúteos
+Buenos días
+Elevación de talones de pie
+Elevación de talones sentado
+Curl de bíceps
+Curl martillo
+Curl predicador
+Curl de bíceps en polea
+Curl inverso
+Curl de muñeca
+Extensión de tríceps en polea
+Extensión de tríceps sobre la cabeza
+Press francés
+Press de banca con agarre cerrado
+Fondos
+Fondos asistidos
+Plancha
+Plancha lateral
+Elevación de piernas colgado
+Crunch en polea
+Rueda abdominal
+Carrera
+Caminata
+Ciclismo
+Remo ergómetro
+Escaladora
+Aperturas con mancuernas
+Aperturas inclinadas en polea
+Press declinado con mancuernas
+Press de banca en máquina Smith
+Press landmine
+Fondos para pecho
+Fondos con lastre
+Press de hombros en máquina
+Press de pie con mancuernas
+Push press
+Elevaciones laterales en máquina
+Elevaciones frontales en polea
+Elevaciones frontales con disco
+Elevaciones posteriores inclinado
+Aperturas posteriores en polea
+Remo Pendlay
+Remo invertido
+Remo Meadows
+Remo unilateral en polea
+Jalón al pecho con agarre ancho
+Dominadas con agarre neutro
+Dominadas supinas asistidas
+Dominadas supinas con lastre
+Peso muerto desde soportes
+Extensión lumbar
+Encogimientos con mancuernas
+Sentadilla goblet
+Sentadilla en máquina Smith
+Sentadilla con cinturón
+Peso muerto sumo
+Peso muerto con barra hexagonal
+Curl femoral tumbado
+Curl nórdico
+Peso muerto rumano a una pierna
+Zancada inversa
+Sentadilla dividida
+Patada de glúteo en polea
+Abducción de cadera en máquina
+Puente de glúteos a una pierna
+Puente de glúteos con barra
+Puente de glúteos con mancuerna
+Hip thrust con mancuerna
+Hip thrust en máquina Smith
+Peso muerto rumano en máquina Smith
+Peso muerto rumano con mancuernas
+Peso muerto rumano con pesa rusa
+Pull through en polea
+Patada de glúteo en máquina
+Abducción de cadera de pie en polea
+Aducción de cadera de pie en polea
+Aducción de cadera en máquina
+Sentadilla búlgara en máquina Smith
+Zancada inversa en máquina Smith
+Sentadilla dividida en máquina Smith
+Sentadilla goblet con talones elevados
+Sentadilla sumo con mancuerna
+Peso muerto sumo con mancuerna
+Sentadilla dividida con pie delantero elevado
+Zancada inversa con déficit
+Zancada lateral con mancuernas
+Zancada cruzada con mancuernas
+Sentadilla landmine
+Peso muerto rumano landmine
+Balanceo con pesa rusa
+Extensión lumbar enfocada en glúteos
+Hiperextensión inversa
+Elevación de talones tipo burro
+Elevación de talones en prensa
+Sentadilla isométrica en pared
+Sentadilla con salto
+Curl inclinado con mancuernas
+Curl concentrado
+Curl con barra Z
+Curl araña
+Curl martillo con cuerda
+Curl de arrastre
+Extensión de tríceps con cuerda
+Press francés con mancuernas
+Press francés con una mancuerna
+Extensión de tríceps con mancuerna sobre la cabeza
+Extensión de tríceps unilateral con mancuerna
+Fondos en banco
+Patada de tríceps
+Extensión de muñeca
+Paseo del granjero
+Crunch abdominal
+Crunch inverso
+Giro ruso
+Crunch bicicleta
+Escaladores
+Bicho muerto
+Bird dog
+Press Pallof
+Leñador en polea
+Press Pallof con una rodilla apoyada
+Sostén Pallof en polea
+Elevación de rodillas colgado
+Elevación de rodillas en silla romana
+Abdominal en banco declinado
+Crunch con lastre
+Giro ruso con lastre
+Inclinación lateral con mancuerna
+Elíptica
+Natación
+Salto de cuerda
+Bicicleta de aire
+Ergómetro de esquí
+Senderismo
+Caminata inclinada en cinta
+Cuerdas de batalla
+Flexiones inclinadas
+Flexiones con rodillas apoyadas
+Flexiones con agarre ancho
+Flexiones diamante
+Flexiones declinadas
+Flexiones pica
+Flexiones pica con pies elevados
+Flexiones arquero
+Flexiones tipo máquina de escribir
+Flexiones explosivas
+Flexiones hindúes
+Flexiones escapulares
+Flexiones con toque de hombro
+Flexiones en pared
+Caminata hacia pino en pared
+Flexiones en pino contra pared
+Flexiones en pino
+Fondos en silla
+Remo en marco de puerta
+Remo con toalla
+Elevación en Y tumbado
+Elevación en T tumbado
+Superman
+Superman isométrico
+Ángel de nieve inverso
+Colgado pasivo
+Colgado activo
+Dominadas escapulares
+Dominadas negativas
+Dominadas comando
+Dominadas en L
+Dominadas con toalla
+Sentadilla sin peso
+Sentadilla pistola
+Sentadilla pistola asistida
+Sentadilla camarón
+Sentadilla cosaca
+Sentadilla sissy
+Zancada frontal
+Zancada lateral
+Zancada cruzada
+Sentadilla del patinador
+Sentadilla a una pierna al cajón
+Bajada del escalón
+Elevación de talones
+Elevación de talones a una pierna
+Puente de glúteos con marcha
+Bombeo de glúteos en rana
+Patada de glúteo en cuadrupedia
+Abducción de cadera en cuadrupedia
+Abducción tipo almeja
+Avión de cadera
+Abducción de cadera tumbado de lado
+Elevación lateral de pierna tumbado
+Caminata de talones desde puente
+Curl femoral con toalla
+Curl femoral con balón de estabilidad
+Puente de glúteos con banda
+Hip thrust con banda
+Bombeo de glúteos en rana con banda
+Abducción tipo almeja con banda
+Caminata lateral con banda
+Caminata monstruo con banda
+Sentadilla con banda
+Patada de glúteo en cuadrupedia con banda
+Abducción de cadera en cuadrupedia con banda
+Patada de glúteo con banda
+Abducción de cadera de pie con banda
+Abducción de cadera sentado con banda
+Separación de banda con brazos
+Face pull con banda
+Remo con banda
+Jalón al pecho con banda
+Press Pallof con banda
+Leñador con banda
+Bicho muerto con banda
+Sostén abdominal hollow
+Balanceo abdominal hollow
+Abdominal en V
+Patadas alternas
+Elevación de piernas tumbado
+Toque de puntas de los pies
+Toque de talones
+Plancha con toque de hombro
+Plancha con saltos
+Plancha de oso
+Gateo de oso
+Caminata de cangrejo
+Caminata de gusano
+Sostén en L
+Encogimiento de rodillas sentado
+Plancha lateral con descenso de cadera
+Plancha Copenhagen
+Bandera del dragón
+Burpee
+Medio burpee
+Impulso de piernas en plancha
+Rodillas altas
+Saltos de tijera
+Salto del patinador
+Desplazamiento lateral
+Pasos rápidos
+Sprawl
+Saltos de tijera con palmada frontal
+Estiramiento gato-vaca
+Círculos de brazos
+Estiramiento global con zancada y rotación
+Balanceo de piernas
+Rotación de torso
+Estiramiento de pecho en puerta
+Postura del niño
+Estiramiento de flexores de cadera de rodillas
+Estiramiento de isquiotibiales
+Estiramiento de cuádriceps de pie
+Flexión hacia delante sentado
+Estiramiento de hombro cruzado
+Estiramiento de gemelos en pared
+Estiramiento mariposa

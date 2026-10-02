@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "SWAL App Template — Astro + Svelte 5 + @swal/ui + vite-pwa + edge-mesh + Xavier + LLM (scaffold canonico, copiar para crear apps)",
+  "description": "Entrenamiento local-first del ecosistema de salud SWAL",
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
@@ -11,11 +11,13 @@
     "check": "astro check",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "vendor:exercises": "node scripts/vendor-exercises.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@swal/ui": "file:../../cores/swal-ui",
-    "@swal/vault": "file:../../cores/swal-vault",
+    "@swal/ui": "file:/home/belal/proyectosSWAL/cores/swal-ui",
+    "@swal/vault": "file:/home/belal/proyectosSWAL/cores/swal-vault",
     "astro": "^7.3.1",
     "idb": "8.0.3",
     "y-indexeddb": "9.0.12",
@@ -33,6 +35,8 @@
     "svelte": "^5.57.0",
     "typescript": "^5.9.3",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "svgo": "^4.0.0",
+    "ajv": "8.20.0"
   }
 }
