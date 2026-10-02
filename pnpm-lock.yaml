@@ -9,10 +9,10 @@ importers:
   .:
     dependencies:
       '@swal/ui':
-        specifier: file:/home/belal/proyectosSWAL/cores/swal-ui
+        specifier: file:../../../proyectosSWAL/cores/swal-ui
         version: file:../../../proyectosSWAL/cores/swal-ui(svelte@5.57.0)
       '@swal/vault':
-        specifier: file:/home/belal/proyectosSWAL/cores/swal-vault
+        specifier: file:../../../proyectosSWAL/cores/swal-vault
         version: file:../../../proyectosSWAL/cores/swal-vault
       astro:
         specifier: ^7.3.1
@@ -45,6 +45,9 @@ importers:
       ajv:
         specifier: 8.20.0
         version: 8.20.0
+      ajv-formats:
+        specifier: 3.0.1
+        version: 3.0.1(ajv@8.20.0)
       autoprefixer:
         specifier: 10.5.4
         version: 10.5.4(postcss@8.5.26)
@@ -2062,6 +2065,14 @@ packages:
     resolution: {integrity: sha512-mv00Te6nmYbRp5DCwclxtt7yV/joXJPGS7nM+97GdxvuttCOfgI3K4U25zboyeX0O+myI8ERluxQe5wljMmVIw==}
     peerDependencies:
       ajv: ^8.5.0
+    peerDependenciesMeta:
+      ajv:
+        optional: true
+
+  ajv-formats@3.0.1:
+    resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
+    peerDependencies:
+      ajv: ^8.0.0
     peerDependenciesMeta:
       ajv:
         optional: true
@@ -6015,6 +6026,10 @@ snapshots:
   acorn@8.18.0: {}
 
   ajv-draft-04@1.0.0(ajv@8.20.0):
+    optionalDependencies:
+      ajv: 8.20.0
+
+  ajv-formats@3.0.1(ajv@8.20.0):
     optionalDependencies:
       ajv: 8.20.0
 

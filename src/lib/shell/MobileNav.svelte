@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from './Icon.svelte';
-  let { brandName='SWAL Training', open=$bindable(false), menuLabel='Menú' }:{brandName?:string;open?:boolean;menuLabel?:string}=$props();
+  let { brandName='BioHuman', open=$bindable(false), menuLabel='Menú' }:{brandName?:string;open?:boolean;menuLabel?:string}=$props();
   export function close(){open=false;}
 </script>
 <svelte:window onkeydown={(e)=>{if(e.key==='Escape')open=false;}} />

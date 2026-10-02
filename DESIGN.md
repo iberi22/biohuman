@@ -1,4 +1,4 @@
-# SWAL Training — Bone Warm Minimalist
+# BioHuman — Bone Warm Minimalist
 
 Reference (read-only): Fize `feat/redesign-visual`, `src-astro/src/layouts/BaseLayout.astro`, `components/{DashboardShell,Icon,Landing}.svelte`, `components/icons.ts` (the requested lib/icons.ts path does not exist on that ref).
 

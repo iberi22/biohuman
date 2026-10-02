@@ -1,6 +1,6 @@
 export const domainConfig = {
-  appId: 'swal-training',
-  appName: 'SWAL Training',
+  appId: 'biohuman',
+  appName: 'BioHuman',
   instanceId: 'default',
   entities: [
     { name: "preferences", label: "Ajustes", fields: ["payload"], xavierKind: "preferences" },

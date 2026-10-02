@@ -1,89 +1,63 @@
-# @swal/app-template — Scaffold canonico SWAL
+# BioHuman
 
-Scaffold separado en `cores/swal-app-template` — no toca `apps/gara-g` del otro agente. Coherente con ola 03.01 + plan hosteler-ia.
+PWA de entrenamiento local-first del ecosistema de salud SWAL. Astro 7 + Svelte 5 + @swal/ui (Bone Warm Minimalist), desplegable en Cloudflare. Rutinas, sesiones, perfil dietario consentido y ajustes permanecen en IndexedDB; no se envían al backend.
 
-## Stack
+## Desarrollo
 
-Astro 7 + Svelte 5 + @astrojs/cloudflare 14.2.5 + @astrojs/svelte 7 + vite-plugin-pwa 1.3.0 + @swal/ui 0.2.0 + Xavier + edge-mesh + LLM
+Requiere Node 24+, pnpm 11 y los cores locales `~/proyectosSWAL/cores/{swal-ui,swal-vault}`. Las dependencias file funcionan tanto en `~/proyectosSWAL/apps/swal-training` como en `~/wt/salud/t1`.
 
-Tokens: `@import '@swal/ui/tokens'` (--swal-bg #020617, --swal-accent #06b6d4, etc.)
-
-## Crear una app nueva (2 comandos)
-
-```bash
-node cores/swal-app-template/scripts/create-app.mjs mi-tienda --target apps/mi-tienda
-# o con entidades: --entities "product,order,customer"
-
-cd apps/mi-tienda && pnpm install && pnpm run build
-# edita src/lib/domain.config.ts para tu modelo de negocio
+```sh
+xavier exec "pnpm install --offline"
+xavier exec "pnpm dev --port 4327"
+xavier exec "pnpm check"
+xavier exec "pnpm test"
+xavier exec "pnpm build"
+xavier exec "pnpm test:e2e"
 ```
 
-El script:
-- copia el template (sin node_modules/dist/.astro/scripts)
-- reescribe `package.json` name + dep `@swal/ui` relativa correcta
-- reescribe `src/lib/domain.config.ts` con appId y entities[]
-- reescribe `wrangler.toml` name + `public/manifest.json` name
+Astro 7 detecta agentes y arranca dev en segundo plano. Para ver un error de arranque: `.astro/dev.log`; para parar: `xavier exec "pnpm exec astro dev stop"`. El smoke sirve el build prerenderizado con Python 3 (ejecutar build primero) y usa Chromium local, sin descargar navegadores; en NixOS usa el Chromium del sistema o PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH. La compatibilidad de Wrangler es 2026-09-04, soportada por el workerd instalado. No hay despliegue ni push automático.
 
-## Modelo de negocio -> capa agentica
+## Funciones
 
-```
-src/lib/domain.config.ts  <- UNICO archivo obligatorio (appId + entities[])
-  |-> Xavier ns: app/{appId}/instance/{id}  (src/lib/xavier.ts)
-  |-> Mesh room: swal/{appId}/{id}          (src/lib/mesh.ts)
-  |-> LLM: llmComplete({prompt,useMemory})  (src/lib/llm.ts + ProviderRouter)
-  |-> SurrealDB tables: entities[].name     (edge-hive, futuro)
-```
+- `/`: 302 ejercicios, búsqueda es/en sin acentos y filtros por músculo, equipo y modalidad.
+- `/biblioteca/<slug>`: silueta inline currentColor de tres frames, con movimiento reducido respetado, músculos, equipo y dificultad heurística.
+- `/rutinas`: editor con orden y objetivos (series, reps, peso, duración, distancia y descanso); Full body principiante, Push/Pull/Legs y Movilidad 15 min.
+- `/entrenar`: series por modalidad, descanso con deadline persistente, recuperación tras recarga y finalización guardada.
+- `/historial`: sesiones, mejores valores por serie, volumen externo por ejercicio en SVG y volumen semanal (lunes UTC).
+- `/intercambio`: arrays `.swalhealth.json`, deduplicación por ULID, restauración de sujeto en dispositivos vacíos con consentimiento, deep link OrionHealth gzip/base64url (máximo 8 KB), perfil dietario opcional con aceptación explícita.
+- `/ajustes`: tema claro/oscuro/sistema, kg/lb, español/inglés, masa corporal para MET.
+- `/creditos`: licencias, modificaciones del arte y fuente MET.
 
-- **Xavier:** `xavierSearch(query)` / `xavierAdd(content)` -> http://localhost:8006 + fallback IndexedDB. Usalo para RAG antes de LLM.
-- **Mesh:** `meshPublish(topic, payload)` / `meshSubscribe(topic, handler)` -> Yjs/y-webrtc via edge-mesh (realtime + offline buffer).
-- **LLM:** `llmComplete({prompt, system, useMemory})` -> ProviderRouter: local xavier-gpud -> opencode-go -> openrouter -> gemini (reusa cores/swal-agent-runner/src/services/llm/*) + Clavis leases.
+## Arquitectura y datos
 
-Tu modelo de negocio no habla directo a OpenAI — pasa por `lib/llm.ts` que ya hace RAG con Xavier y mesh.
+`src/lib/domain.ts` conserva la API CRUD de la plantilla. `localStorageAdapter.ts` la conecta a IndexedDB, sin fallback silencioso a memoria. `repository.ts` persiste documentos locales para rutinas, sesiones, sesión activa, preferencias y perfil. `training.ts` contiene lógica pura, ULID, progreso, validación y transporte.
 
-## Estructura
+El shell provisional vive en `src/lib/shell/{AppShell,Icon,MobileNav}.svelte`, con props de marca/ruta/ticker/children de Fize y navegación configurable. Usa tokens y Button/Badge/Toaster de @swal/ui. Un único TODO señala el futuro cambio al import del core; la extracción todavía no forma parte de esta rama.
 
-```
-src/
-├── layouts/Layout.astro (@swal/ui/tokens + Toaster)
-├── pages/index.astro (demo Card/Badge/Button/StatusBadge)
-├── components/ (islas Svelte, client:load solo con estado, usa @swal/ui)
-├── lib/
-│   ├── domain.config.ts (appId + entities)
-│   ├── xavier.ts
-│   ├── mesh.ts
-│   ├── llm.ts
-│   └── README.md
-└── env.d.ts
-public/manifest.json (192/512 maskable, standalone)
-wrangler.toml (Cloudflare Pages)
-astro.config.mjs (cloudflare + svelte + VitePWA workbox)
+Contrato: [docs/CONTRACT.md](docs/CONTRACT.md). La validación, exportación y deep link usan el paquete canónico vendorizado en `vendor/health-contract` (VENDORED_FROM: GOS salud/e2 34b15de0, con esquemas y fixtures); no se edita aquí. Esta app no calcula nutrientes, así que `gosDataset` fija el manifest nulo `0.0.0+sha256:000…0` (pendiente confirmar convención en el contrato). Fuente y método MET: [docs/MET.md](docs/MET.md), [Adult Compendium 2024](https://pacompendium.com/adult-compendium/).
+
+## Catálogo y licencias
+
+Se incluyen **906 SVG** vendorizados: la aplicación no usa CDN. Para regenerar desde el clon auditado:
+
+```sh
+WORKOUT_GUIDE_PATH=/ruta/workout-guide node scripts/vendor-exercises.mjs
 ```
 
-## Comandos
+El script exige 302 entradas y 302 traducciones (`scripts/names-es.txt`), minifica con SVGO, cambia `fill="#fff"` a `currentColor` y genera `src/data/exercises.json`. Conserva músculo original, jerarquía normalizada, provenance y `difficulty_source: heuristic`. Upstream: @bryllim/workout-guide 1.0.0, commit aac5992. El catálogo y SVG se versionan; no es necesario el clon para construir.
 
-```bash
-pnpm install
-pnpm run check   # 0 errors
-pnpm run build   # 0 errors (server + cloudflare + _headers)
-pnpm run dev     # astro dev
-```
+**Art © Bryl Lim, based on Everkinetic, CC BY-SA 4.0.** Adaptaciones bajo la misma licencia, código upstream MIT. Véase [LICENSES.md](LICENSES.md) y [atribución](public/exercises/ATTRIBUTION.md).
 
-Verificado: pnpm install 622 + build 1.39s (cloudflare), check 0 errors.
+## Offline y límites
 
-## Coherencia con planes existentes
+La PWA registra `/registerSW.js`; páginas prerenderizadas y JS/CSS se precachean. La navegación offline usa index.html como fallback y resuelve la sección según la URL al hidratar. Los SVG se cargan por ejercicio y se guardan CacheFirst (906 máximo), evitando descargar 28 MB al instalar. Una ilustración necesita haberse abierto en línea para quedar disponible offline; el registro de entrenamiento continúa sin ella.
 
-- **Gara-G 03.01:** `apps/gara-g/.hermes/ola-swal-gara/body-03.01.md` -- este template es la extraccion canonica de ese scaffold. El otro agente sigue en `apps/gara-g/packages/app-pwa` sin conflicto.
-- **Hosteler-ia:** `apps/hosteler-ia/docs/plans/PLAN_MIGRACION_UI_CORE_ESQUELETO.md` Fase 0-1 + `apps/hosteler-ia/src-astro/` (ya usa mismo lib con appId hosteler-ia). Puede migrar a `cores/swal-app-template` como base.
-- **Cores:** `cores/swal-ui` (design system), `cores/edge-mesh` (P2P), `apps/xavier` (:8006), `cores/swal-agent-runner` (LLM router + PWA pattern).
+La estimación MET utiliza tiempo total con descansos, la masa de Ajustes (70 kg inicial) y una media de modalidades; no modela intensidad/velocidad. No hay instrucciones técnicas verificadas en upstream. Yjs, mesh y @swal/vault de la plantilla están disponibles pero no se activa sincronización de salud; cifrado/mesh es una fase posterior del contrato. IndexedDB no está cifrado en este MVP. Se recomienda una pestaña de edición: el repositorio actual no fusiona ediciones concurrentes entre pestañas.
 
-## Plano coherente (no pisar ola)
+No se fija URL HTTPS de OrionHealth porque el contrato no especifica el dominio de producción. Se genera el URI Android `orionhealth://import?p=…`; probar la recepción real requiere OrionHealth. El perfil expirado se identifica y puede eliminarse; no participa en recomendaciones ni cálculo nutricional.
 
-- No modificar `apps/gara-g/packages/app-pwa` del otro agente mas alla de dejarlo build verde (ya hecho).
-- No crear `cores/swal-econ` etc. aqui -- eso es ola 01.x del otro agente.
-- Template es isla autonoma: todo se implementa para replicar (directiva core-isla Belal 2026-08-03).
-- Futuro: extraer `swal-agent-runner` LLM router a `cores/swal-llm` para que template y runner compartan codigo (ahora duplicado como stub).
 
-## AUI + Billing
+## Pendiente
 
-- **AUI:** `AuiRenderer.svelte` + `src/lib/aui.ts` (ver USAGE.md). Whitelist Card/Button/Badge/Input/Table/Tabs/Modal/StatusBadge/Skeleton. Demo en `src/pages/index.astro` con `demoAui`.
-- **Billing:** `src/lib/billing.ts` — TIERS socio/socio-managed, 20% handling SWAL sobre infra 100% + AI 10% min (Workers AI power by Cloudflare). Ver `USAGE.md` y `src/lib/worker-ai.example.ts`.
+- Cambiar el shell local (`src/lib/shell`) por `AppShell`/`MobileNav`/`Icon` de `@swal/ui` cuando el core con shell (salud/c2) esté en la rama canónica; la dependencia `file:` actual apunta al core sin shell.
+- Sin backend en la ruta crítica: todo funciona offline con IndexedDB; la nube (vault/billing) sería una suscripción opcional y el mesh P2P de la plantilla se conserva en `src/lib/mesh.ts`.

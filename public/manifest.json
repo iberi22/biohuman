@@ -1,6 +1,6 @@
 {
-  "name": "SWAL Training",
-  "short_name": "Training",
+  "name": "BioHuman",
+  "short_name": "BioHuman",
   "description": "Entrenamiento local-first: biblioteca, rutinas y progreso",
   "start_url": "/",
   "display": "standalone",

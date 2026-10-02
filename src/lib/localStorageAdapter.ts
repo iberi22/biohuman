@@ -3,7 +3,7 @@ import type { DomainRecord, StorageAdapter } from './domain';
 import { setStorageAdapter } from './domain';
 // Reuses the template CRUD boundary; health records never use its remote adapters.
 export async function initializeLocalStorage() {
-  const db=await openDB('swal-training-v1',1,{upgrade(db){db.createObjectStore('records',{keyPath:['entity','id']});}});
+  const db=await openDB('biohuman-v1',1,{upgrade(db){db.createObjectStore('records',{keyPath:['entity','id']});}});
   const adapter:StorageAdapter={
     async create(entity,record){await db.put('records',{...record,entity});return record;},
     async list(entity,instanceId){return (await db.getAll('records')).filter(r=>r.entity===entity&&r.instance_id===instanceId);},

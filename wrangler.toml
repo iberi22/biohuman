@@ -1,4 +1,5 @@
-name = "swal-training"
+name = "biohuman"
+# Custom domain biohuman.swal.network is set at deploy time (not deployed here).
 compatibility_date = "2026-09-04"
 compatibility_flags = ["nodejs_compat"]
 

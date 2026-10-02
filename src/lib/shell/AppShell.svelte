@@ -4,7 +4,7 @@
   import MobileNav from './MobileNav.svelte';
   import type { IconName } from './icons';
   // TODO: Swap these shell imports to @swal/ui when the Fize extraction lands.
-  let { currentPath='/', brandName='SWAL Training', tickerMessage='En este dispositivo', children, nav, menuLabel='Menú' }:{currentPath?:string;brandName?:string;tickerMessage?:string;children?:Snippet;nav:{href:string;label:string;icon:IconName}[];menuLabel?:string}=$props();
+  let { currentPath='/', brandName='BioHuman', tickerMessage='En este dispositivo', children, nav, menuLabel='Menú' }:{currentPath?:string;brandName?:string;tickerMessage?:string;children?:Snippet;nav:{href:string;label:string;icon:IconName}[];menuLabel?:string}=$props();
   let mobile:MobileNav;
   const active=(href:string)=>href==='/'?currentPath==='/':currentPath.startsWith(href);
 </script>

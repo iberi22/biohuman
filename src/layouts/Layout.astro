@@ -2,7 +2,7 @@
 import { Toaster } from '@swal/ui';
 import themeCss from '@swal/ui/tokens?inline';
 interface Props { title?:string; }
-const {title='SWAL Training'}=Astro.props;
+const {title='BioHuman'}=Astro.props;
 ---
 <!doctype html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>{title}</title><meta name="description" content="Tu biblioteca, rutinas y progreso. Entrenamiento privado en tu dispositivo."/><link rel="manifest" href="/manifest.json"/><link rel="icon" href="/favicon.svg"/><meta name="theme-color" content="#FAF9F5"/><script src="/registerSW.js" defer is:inline></script><script is:inline>try{var t=localStorage.getItem('swal-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch{}</script><style is:global set:html={themeCss}/></head><body><a class="skip" href="#main">Ir al contenido</a><slot/><Toaster client:load/></body></html>
 <style is:global>

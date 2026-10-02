@@ -1,14 +1,20 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { agentCreate, agentList, agentGet, agentSearch, agentDelete } from './agentDomain';
 import { getMemoryAdapter, setStorageAdapter } from './domain';
+import { xavierAdd } from './xavier';
+import { meshPublish } from './mesh';
+vi.mock('./xavier',()=>({xavierAdd:vi.fn().mockResolvedValue({}),xavierSearch:vi.fn().mockResolvedValue({memories:[]})}));
+vi.mock('./mesh',()=>({meshPublish:vi.fn().mockResolvedValue(undefined)}));
 
 describe('agentDomain 100% agentico', () => {
-  beforeEach(() => { getMemoryAdapter().clear(); setStorageAdapter(getMemoryAdapter()); if (typeof localStorage !== 'undefined') localStorage.clear(); });
+  beforeEach(() => { vi.clearAllMocks(); getMemoryAdapter().clear(); setStorageAdapter(getMemoryAdapter()); if (typeof localStorage !== 'undefined') localStorage.clear(); });
 
   it('agentCreate crea fila + memoria + mesh', async () => {
     const rec: any = await agentCreate('exercise', { name: 'AgentItem' } as any, 'inst1');
     expect(rec.id).toBeTruthy();
     expect(rec.instance_id).toBe('inst1');
+    expect(xavierAdd).toHaveBeenCalledOnce();
+    expect(meshPublish).toHaveBeenCalledTimes(2);
     // lista filtra por instance
     const list = await agentList('exercise', 'inst1');
     expect(list).toHaveLength(1);

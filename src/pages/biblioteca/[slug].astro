@@ -6,4 +6,4 @@ export const prerender = true;
 export function getStaticPaths(){return exercises.map(e=>({params:{slug:e.slug},props:{name:e.name_es}}));}
 const {slug}=Astro.params;
 ---
-<Layout title={`${Astro.props.name} · SWAL Training`}><TrainingApp page="detail" slug={slug} client:load /></Layout>
+<Layout title={`${Astro.props.name} · BioHuman`}><TrainingApp page="detail" slug={slug} client:load /></Layout>
