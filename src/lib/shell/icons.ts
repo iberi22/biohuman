@@ -76,6 +76,25 @@ export const ICONS = {
   heart: ['M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'],
   menu: ['M4 6h16', 'M4 12h16', 'M4 18h16'],
   close: ['M18 6 6 18', 'm6 6 12 12'],
+
+  // --- Icons for the bottom bar with a central action (ported from openGym) ---
+  //
+  // Same 24x24 grid, same stroke weight and same terminals as the rest of the set.
+  // openGym's `rect` elements (calendar, dumbbell) are converted to paths with arcs
+  // so Icon.svelte — which only draws <path> — can render them; coordinates are
+  // rounded to one decimal, matching the convention above.
+  house: ['M3.5 10.7 12 3.8l8.5 6.9M5.9 9.4V19a1.4 1.4 0 0 0 1.4 1.4h9.4A1.4 1.4 0 0 0 18.1 19V9.4'],
+  calendar: [
+    'M6.6 5.2H17.4A3.2 3.2 0 0 1 20.6 8.4V17.4A3.2 3.2 0 0 1 17.4 20.6H6.6A3.2 3.2 0 0 1 3.4 17.4V8.4A3.2 3.2 0 0 1 6.6 5.2Z',
+    'M8.2 3.4v3.4M15.8 3.4v3.4M3.4 10.2h17.2',
+  ],
+  dumbbell: [
+    'M7.2 7.9H7.8A1.3 1.3 0 0 1 9.1 9.2V14.8A1.3 1.3 0 0 1 7.8 16.1H7.2A1.3 1.3 0 0 1 5.9 14.8V9.2A1.3 1.3 0 0 1 7.2 7.9Z',
+    'M16.2 7.9H16.8A1.3 1.3 0 0 1 18.1 9.2V14.8A1.3 1.3 0 0 1 16.8 16.1H16.2A1.3 1.3 0 0 1 14.9 14.8V9.2A1.3 1.3 0 0 1 16.2 7.9Z',
+    'M9.1 12h5.8M3.6 9.9v4.2M20.4 9.9v4.2',
+  ],
+  play: ['M8.4 5.6 18 12l-9.6 6.4Z'],
+  list: ['M8.4 6.6h11.2M8.4 12h11.2M8.4 17.4h11.2M4.6 6.6h.01M4.6 12h.01M4.6 17.4h.01'],
 } as const satisfies Record<string, readonly string[]>;
 
 export type IconName = keyof typeof ICONS;

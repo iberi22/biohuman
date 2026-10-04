@@ -54,3 +54,16 @@ cannot be ported with its media: the photos and GIFs have unresolved title (see
 
 When a port and openGym's own test disagree, **the upstream test is the authority** and the port
 is wrong until proven otherwise. Do not "fix" the behaviour to match a ported test.
+
+## Shell work (Wave 1, landed but not wired)
+
+`tabbar.ts` holds the bottom bar's decision logic: which tab is lit on a given route, and what the
+central button reads and does. `shell/TabBar.svelte` renders it.
+
+**Deliberately not mounted.** BioHuman's `AppShell.svelte` already gives mobile a collapsible menu
+(`MobileNav`) with the full navigation, all 7 destinations. Adding a 5-tab bar underneath would put
+two navigation systems on the same screen and cut access to the two that do not fit in 5 tabs
+(`/intercambio`, `/ajustes`). That is a product decision, not a porting one — it needs the owner's
+call on whether mobile gets a bar, a menu, or a menu plus a floating action.
+
+The logic is landed and tested first so either answer is cheap to apply.
