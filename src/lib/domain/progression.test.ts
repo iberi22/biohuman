@@ -496,6 +496,46 @@ describe('applying a prescription', () => {
     expect(out[0].w).toBe(30)
   })
 
+  it('grows a unilateral set into a fresh per-side row, uncompleted', () => {
+    // Regression: this used to spread the seed with `sides` deleted, which turned the appended
+    // row into a straight set and left it marked done if the seed was done.
+    const seed = syncSideAggregate({
+      sides: {
+        L: { w: 40, r: 10, done: false },
+        R: { w: 40, r: 10, done: false },
+      },
+    })
+    const out = applyPrescription([seed], {
+      policy: 'linear',
+      kind: 'up',
+      weight: 40,
+      reps: 10,
+      sets: 3,
+      why: [],
+    })
+    const added = out.slice(1)
+    expect(added).toHaveLength(2)
+    for (const row of added) {
+      expect(row.sides?.L).toBeDefined()
+      expect(row.sides?.R).toBeDefined()
+      expect(row.done).not.toBe(true)
+    }
+    expect(out.filter(s => !s.warmup)).toHaveLength(3)
+  })
+
+  it('does not carry a completed seed into a newly appended straight set', () => {
+    const out = applyPrescription([{ w: 60, r: 8, done: true }], {
+      policy: 'linear',
+      kind: 'up',
+      weight: 60,
+      reps: 8,
+      sets: 3,
+      why: [],
+    })
+    // the appended rows must be performable, not pre-ticked
+    expect(out.filter(s => s.done === true)).toHaveLength(1)
+  })
+
   it('leaves the list alone for a policy that decided nothing', () => {
     const sets = [{ w: 60, r: 8, done: false }]
     expect(applyPrescription(sets, { policy: 'off', kind: 'off', why: [] })).toBe(sets)

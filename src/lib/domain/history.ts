@@ -406,9 +406,28 @@ export const setUnitsTotal = (entries: WorkoutEntry[] | null | undefined): numbe
     0,
   )
 
-/** Completed sets in an entry, warm-ups excluded. */
-export const setsDone = (entry: WorkoutEntry | null | undefined): number =>
+/**
+ * Completed WORK sets in one entry, warm-ups excluded.
+ *
+ * Named apart from `setsDone` on purpose: upstream's `setsDone` is the gross completion counter
+ * across a whole workout, warm-ups included, and it is kept that way below. The two answer
+ * different questions and collapsing them into one name lost per-side counting.
+ */
+export const workSetsDoneInEntry = (entry: WorkoutEntry | null | undefined): number =>
   (entry?.sets ?? []).filter(s => hasCompletedWork(s) && !isWarmupRow(s)).length
+
+/**
+ * Total completion-units across a whole session's rows: every done set, warm-ups included, with
+ * both limbs of a unilateral set counted separately.
+ *
+ * This is the gross counter, distinct from `workSetsDone` below which excludes warm-ups. A set
+ * ticked on both sides counts twice, because it was two pieces of work.
+ */
+export function setsDone(w: Workout | null | undefined): number {
+  let n = 0
+  for (const e of w?.entries ?? []) for (const s of e.sets ?? []) n += doneUnits(s)
+  return n
+}
 
 /** Completed work sets across a whole workout. */
 export function workSetsDone(w: Workout | null | undefined): number {

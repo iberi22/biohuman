@@ -31,7 +31,14 @@ import {
 } from './history'
 import { estimate1RM } from './onerm'
 import { normalizeRepRange } from './rep-range'
-import { isSideSet, isWarmupRow, syncSideAggregate, type Mode, type WorkoutSet } from './workout-model'
+import {
+  isSideSet,
+  isWarmupRow,
+  makeSideSet,
+  syncSideAggregate,
+  type Mode,
+  type WorkoutSet,
+} from './workout-model'
 
 /** The progression rules this module knows. */
 export const POLICIES = ['off', 'linear', 'greyskull', 'double', 'time'] as const
@@ -969,7 +976,14 @@ export function applyPrescription(sets: WorkoutSet[], p: Prescription | null, st
     // drops or clusters — that would invent work the row never did.
     const { drops, clusters, ...plainSeed } = seed
     while (out.filter(s => !isWarmupRow(s)).length < (p.sets as number)) {
-      out.push(isSideSet(seed) ? { ...syncSideAggregate({ ...seed, sides: undefined as never }) } : { ...plainSeed, done: false })
+      // A unilateral seed grows into a fresh per-side row via makeSideSet, so the new row is
+      // uncompleted and keeps both limbs. Spreading the seed instead would carry its `done`
+      // across and drop the sides entirely.
+      out.push(
+        isSideSet(seed)
+          ? makeSideSet({ w: p.weight ?? Number(seed.w), r: p.reps ?? Number(seed.r) })
+          : { ...plainSeed, done: false },
+      )
     }
   }
   // Last, because the work rows now carry their final weight: the warm-up block ramps toward

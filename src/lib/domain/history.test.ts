@@ -30,6 +30,7 @@ import {
   setsDone,
   sideReps,
   workSetsDone,
+  workSetsDoneInEntry,
   type HistoryState,
   type SlottedEntry,
   type Workout,
@@ -239,7 +240,7 @@ describe('units and counts', () => {
     expect(setUnitsTotal(null)).toBe(0)
   })
 
-  it('counts completed sets excluding warm-ups', () => {
+  it('counts completed WORK sets in one entry, excluding warm-ups', () => {
     const e = {
       sets: [
         { r: 10, done: true, warmup: true },
@@ -247,7 +248,37 @@ describe('units and counts', () => {
         { r: 5, done: false },
       ],
     }
-    expect(setsDone(e)).toBe(1)
+    expect(workSetsDoneInEntry(e)).toBe(1)
+  })
+
+  it('counts the GROSS total across a session, warm-ups included', () => {
+    // setsDone is the gross counter and is not the same function as the work-set count. A warm-up
+    // you actually performed is work you did, and it is what the session summary reads.
+    const w = {
+      entries: [
+        {
+          sets: [
+            { r: 10, done: true, warmup: true },
+            { r: 5, done: true },
+            { r: 5, done: false },
+          ],
+        },
+      ],
+    }
+    expect(setsDone(w)).toBe(2)
+    expect(workSetsDone(w)).toBe(1)
+  })
+
+  it('counts both limbs of a unilateral set as two units, done or not', () => {
+    const bothSides = syncSideAggregate({
+      sides: {
+        L: { w: 40, r: 5, done: true },
+        R: { w: 40, r: 5, done: true },
+      },
+    })
+    expect(setsDone({ entries: [{ sets: [bothSides] }] })).toBe(2)
+    // a row count would have said 1, which is what this regression guards against
+    expect(workSetsDoneInEntry({ sets: [bothSides] })).toBe(1)
   })
 
   it('counts work sets across a whole workout, warm-ups excluded', () => {
