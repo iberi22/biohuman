@@ -1,3 +1,5 @@
+// @vitest-environment node
+//
 // Frontera E2EE: la nube (R2 + D1 + KV) NO puede descifrar nada.
 //
 // Este test existe porque la promesa "el operador no puede leer" era FALSA: el adaptador subia a R2
@@ -5,6 +7,10 @@
 // reparto es 2-de-3, con lo que habia en R2 se reconstruia la DEK. Ahora R2 guarda el pack sin
 // shares, KV guarda un unico share (x=3) y los shares x=1 (dispositivo) y x=2 (recuperacion) no
 // salen del equipo; por tanto la nube entera suma 1 share y no alcanza el umbral.
+//
+// Runs in the node environment on purpose: sealedPack reaches for node:crypto, which jsdom does
+// not provide, and this file exercises Cloudflare bindings against in-memory fakes — there is no
+// DOM here to render.
 import { describe, it, expect } from 'vitest';
 import { CloudflareVaultAdapter, type CloudflareEnv } from './cloudflareVaultAdapter';
 import { reconstructDEK, unpackSealedPack } from '@swal/vault/sealedPack.js';
