@@ -78,9 +78,17 @@ export interface Workout {
 
 /** An entry carries the routine slot its numbers belong to, when the session was planned. */
 export interface SlottedEntry extends WorkoutEntry {
+  /** The routine slot this entry's numbers belong to. */
   rid?: string
+  /** Frozen at build time, so editing a routine later never rewrites a saved session. */
   noProg?: boolean
-  planned?: boolean
+  /**
+   * The plan this entry was built from — the routine's sets and reps at the time.
+   *
+   * It is the only way the next session can tell a plan that was edited from one that progressed,
+   * so it holds the record itself rather than a flag pointing at it.
+   */
+  planned?: Record<string, unknown>
   note?: string
   notePin?: boolean
 }
