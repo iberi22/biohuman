@@ -15,13 +15,18 @@ than by convention.
 | `workout-model.ts` | 372 | Row shape: warm-up/work phases, set types (straight/dropset/restpause), per-side sets with a scalar mirror, mode resolution with legacy fallbacks |
 | `rep-range.ts` | 19 | The two bounds of double progression, normalised and stride-aligned |
 | `onerm.ts` | 102 | Estimated 1RM, with the rep cap and the metric-mode rule that stops a timed set being read as reps |
+| `dates.ts` | 20 | ISO dates and week keys (the noon-local trick in `startOfWeek` is load-bearing) |
+| `bodyweight.ts` | 28 | Weigh-ins grouped into weeks with means and change-vs-last-real-week |
+| `bar.ts` | 73 | Bar weight per equipment and per unit, and the plates-per-side split |
 
 ## Deliberate deviation from upstream
 
-`onerm.ts` takes the assisted flag as an argument instead of looking the exercise up in
-openGym's 1,324-entry catalogue (`isAssisted(idOrEx)` → `EXIDX[idOrEx]`). BioHuman does not have
-that catalogue yet, and hard-coding a stub lookup would put a false claim in the type. The caller
-passes the fact; `isAssisted` lands with the catalogue in Wave 3. Same reasoning, same numbers.
+`onerm.ts` and `bar.ts` take a fact as an argument instead of looking the exercise up in openGym's
+1,324-entry catalogue (`isAssisted(idOrEx)` → `EXIDX[idOrEx]`, `exOf(idOrId)` → `EXIDX[id]`).
+BioHuman does not have that catalogue yet, and hard-coding a stub lookup would put a false claim in
+the type. The caller passes the fact — `assisted` for onerm, `eq` for bar — and the catalogue
+resolvers land in Wave 3. Same reasoning, same numbers; nothing else was changed to make this
+work.
 
 ## Rules for porting here
 
