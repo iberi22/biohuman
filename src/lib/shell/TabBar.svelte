@@ -129,7 +129,18 @@
     margin-top: -14px;
     border-radius: 50%;
     background: var(--swal-accent);
-    color: var(--swal-on-accent);
+    /* `--swal-on-accent` does not exist in the design system (the tokens live in
+       @swal/ui/src/tokens/antigravity.css and none is `on-*`), so this resolved to an invalid
+       value and the icon silently inherited the parent colour instead. That landed at 3.07:1
+       against the default accent — barely over the 3:1 of WCAG 1.4.11, and under it outright once
+       the profile sets a lighter accent (#0EA5E9 → 2.77:1, #F59E0B → 2.15:1).
+
+       `--swal-text-inverse` is the token that exists for text sitting on a coloured surface. It is
+       the right default, but it is not a full fix: neither it nor `--swal-text` clears 3:1 for
+       every accent in the palette. The real fix is a token computed from `--swal-accent`, which
+       belongs to @swal/ui rather than to this component. Until that exists, prefer the surface
+       that reads rather than the one that happens to exist. */
+    color: var(--swal-text-inverse);
     box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
   }
   #tabbar .start.rec .cir {
