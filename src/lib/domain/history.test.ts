@@ -204,9 +204,45 @@ describe('best load', () => {
     expect(bestWeightForEntry(e)).toBe(60)
   })
 
-  it('reads a legacy topW-only record, but never as an assisted best', () => {
-    expect(bestWeightForEntry({ id: 'bench-press', sets: [], topW: 55 })).toBe(55)
-    expect(bestWeightForEntry({ id: 'assisted-pull-up', sets: [], topW: 55 })).toBe(0)
+  it('reads a legacy topW-only reps record', () => {
+    expect(bestWeightForEntry({ id: 'bench-press', sets: [], topW: 55 } as never)).toBe(55)
+  })
+
+  it('never lets topW override a real completed row', () => {
+    // A real row always wins — including an explicit 0 for an unloaded bodyweight set.
+    const e = { id: 'bench-press', sets: [{ w: 60, r: 5, done: true }], topW: 999 }
+    expect(bestWeightForEntry(e as never)).toBe(60)
+  })
+
+  it('ignores topW once the entry carries a warm-up marker', () => {
+    // topW predates phase-tagged warm-ups; it stays a fallback for legacy all-work records only.
+    const e = {
+      id: 'bench-press',
+      sets: [
+        { w: 20, r: 8, done: true, warmup: true },
+        { w: 60, r: 5, done: true },
+      ],
+      topW: 999,
+    }
+    expect(bestWeightForEntry(e as never)).toBe(60)
+  })
+
+  it('ignores topW on a non-reps entry', () => {
+    const e = {
+      id: 'plank',
+      target: { id: 'plank', mode: 'time' },
+      sets: [{ sec: 60, done: true }],
+      topW: 40,
+    }
+    expect(bestWeightForEntry(e as never)).toBe(0)
+  })
+
+  it('takes the SMALLER topW on an assistance machine, because less help is harder', () => {
+    // The rule inverts on assistance: the best set there is the one with the least assistance.
+    const e = { id: 'assisted-pull-up', sets: [], topW: 30 }
+    expect(bestWeightForEntry(e as never)).toBe(30)
+    // and a topW of 0 cannot win, or it would ask for negative help next time
+    expect(bestWeightForEntry({ id: 'assisted-pull-up', sets: [], topW: 0 } as never)).toBe(0)
   })
 
   it('returns 0 when nothing usable was logged', () => {

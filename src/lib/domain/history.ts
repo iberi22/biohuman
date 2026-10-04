@@ -338,6 +338,7 @@ export function metricEntriesForExercise(
  * nobody did and then ask for negative help next time.
  */
 export function bestWeightForEntry(entry: WorkoutEntry = {}): number {
+  const target = ((entry as { target?: RoutineExercise }).target ?? entry) as RoutineExercise
   const sets = Array.isArray(entry.sets) ? entry.sets : []
   const workRows = sets.filter(s => phaseForSet(s) === 'work')
   const repsRows = metricRowsForEntry(entry, 'reps')
@@ -364,12 +365,24 @@ export function bestWeightForEntry(entry: WorkoutEntry = {}): number {
     }
   }
 
-  // A legacy reps record may carry only `topW`: the working weight confirmed after the exercise,
-  // with no rep count attached.
-  if (!hasUsableWeight) {
-    const top = Number((entry as { topW?: number }).topW)
-    if (Number.isFinite(top) && top > 0 && !assisted) return top
-  }
+  // A real completed row, including an explicit zero for an unloaded bodyweight set, always wins.
+  // A manual topW is only useful for old records whose rows did not carry a usable load.
+  if (hasUsableWeight) return best
+
+  // topW predates phase-tagged warm-ups. It remains a fallback for legacy all-work records, but
+  // cannot override resolved work rows once any warm-up marker exists.
+  const parentMode = modeForSet({}, target)
+  const hasNonRepsWorkRow = workRows.some(s => modeForSet(s, target) !== 'reps')
+  const hasWarmupRow = Array.isArray(entry.sets) && entry.sets.some(isWarmupRow)
+  const topWeight = Number((entry as { topW?: number }).topW)
+  if (
+    parentMode === 'reps' &&
+    !hasNonRepsWorkRow &&
+    !hasWarmupRow &&
+    Number.isFinite(topWeight) &&
+    (best <= 0 || (assisted ? topWeight > 0 && topWeight < best : topWeight > best))
+  )
+    best = topWeight
   return best
 }
 
