@@ -4,78 +4,84 @@
   Adapted from openGym's `TabBar.jsx` (https://github.com/DuarteSantos8/openGym,
   AGPL-3.0-or-later, Copyright (C) 2026 Duarte Santos). See NOTICE.md.
 
-  The decision logic lives in `src/lib/domain/tabbar.ts` and is tested there; this
-  file is markup only. That split is the point: what the middle button says depends
-  on whether a session is running and which screen you are on, and that is exactly the
-  kind of rule that should be verifiable without a browser.
+  The decision logic lives in `src/lib/domain/tabbar.ts` and is tested there; this file is
+  markup only. That split is the point: what the middle button says depends on whether a session
+  is running and which screen you are on, and that is exactly the kind of rule that should be
+  verifiable without a browser.
 
-  Note for anyone templating this later: in openGym the tab component had to be
-  declared at module scope because defining it inside render made React rebuild every
-  button once a second for the length of a rest timer, throwing away focus and the
-  :active tint with it. Svelte has no equivalent trap here — the each block keys on
-  `tab.key` — but do not introduce a wrapper that recreates buttons per tick.
+  Landed but not mounted — see src/lib/domain/README.md. AppShell already gives mobile a
+  collapsible menu with all seven destinations, so switching mobile to this bar is the owner's
+  call, not the port's.
+
+  Note for anyone templating this later: in openGym the tab component had to be declared at
+  module scope because defining it inside render made React rebuild every button once a second
+  for the length of a rest timer, throwing away focus and the :active tint with it. Svelte has no
+  equivalent trap given the keyed each below — but do not introduce a wrapper that recreates the
+  buttons per tick.
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
-  import { isTabActive, startAction, type ActiveSession, type TabKey } from '../domain/tabbar';
+  import { isTabActive, startAction, type ActiveSession } from '../domain/tabbar';
 
   let {
     route = '',
     active = null,
     labels = {},
-    onNavigate = (_href: string) => {},
-    onStart = (_routines: string[] | null) => {},
+    onNavigate = () => {},
+    onStart = () => {},
   }: {
     /** Current route, without the leading slash. */
     route?: string;
     /** The session in progress, or null when there is none. */
     active?: ActiveSession | null;
-    /** UI strings; defaults are the Spanish ones this app ships. */
-    labels?: Partial<Record<'home' | 'plan' | 'stats' | 'library' | 'start' | 'resume' | 'workout' | 'edit', string>>;
+    /** UI strings; defaults are the Spanish this app ships. */
+    labels?: Partial<Record<string, string>>;
     onNavigate?: (href: string) => void;
     onStart?: (routines: string[] | null) => void;
   } = $props();
 
-  const T: { key: TabKey; href: string }[] = [
-    { key: 'home', href: '/' },
-    { key: 'plan', href: '/rutinas' },
-    { key: 'stats', href: '/historial' },
-    { key: 'library', href: '/biblioteca' },
-  ];
+  const TABS = [
+    { key: 'home', href: '/', icon: 'house', label: 'Inicio' },
+    { key: 'plan', href: '/rutinas', icon: 'calendar', label: 'Plan' },
+    { key: 'stats', href: '/historial', icon: 'chart', label: 'Progreso' },
+    { key: 'library', href: '/biblioteca', icon: 'list', label: 'Ejercicios' },
+  ] as const;
 
-  const t = (k: keyof NonNullable<typeof labels>, fallback: string) => labels[k] ?? fallback;
+  /** The central button splits the bar, so the tabs either side are named by position. */
+  const [before, after] = [TABS.slice(0, 2), TABS.slice(2)];
+
+  const t = (key: string) => labels[key];
+
+  const START_LABEL: Record<string, string> = {
+    Start: 'Entrenar',
+    Resume: 'Continuar',
+    'Edit workout': 'Editar sesión',
+    Workout: 'Entrenamiento',
+  };
+
   const start = $derived(startAction(route, active));
-  const startLabel = $derived(
-    start.label === 'Start'
-      ? t('start', 'Entrenar')
-      : start.label === 'Resume'
-        ? t('resume', 'Continuar')
-        : start.label === 'Edit workout'
-          ? t('edit', 'Editar sesión')
-          : t('workout', 'Entrenamiento'),
-  );
+  const startLabel = $derived(t(START_LABEL[start.label]) ?? START_LABEL[start.label]);
 </script>
 
 <nav id="tabbar" aria-label="Principal">
-  {#each T.slice(0, 2) as tab (tab.key)}
+  {#each before as tab (tab.key)}
     <button type="button" class:on={isTabActive(tab.key, route)} onclick={() => onNavigate(tab.href)}>
-      <Icon name={tab.key === 'home' ? 'house' : 'calendar'} size={22} />
-      <span>{tab.key === 'home' ? t('home', 'Inicio') : t('plan', 'Plan')}</span>
+      <Icon name={tab.icon} size={22} />
+      <span>{t(tab.label) ?? tab.label}</span>
     </button>
   {/each}
 
-  <!-- On the workout screen itself there is nothing to resume, so the button reads as
-       the tab it is and stays lit; anywhere else it brings you back to the exercise
-       you were on. -->
+  <!-- On the workout screen itself there is nothing to resume, so the button reads as the tab it
+       is and stays lit; anywhere else it brings you back to the exercise you were on. -->
   <button type="button" class="start" class:rec={start.resume} class:on={start.on} onclick={() => onStart(null)}>
     <span class="cir"><Icon name={start.icon} size={22} /></span>
     <span>{startLabel}</span>
   </button>
 
-  {#each T.slice(2) as tab (tab.key)}
+  {#each after as tab (tab.key)}
     <button type="button" class:on={isTabActive(tab.key, route)} onclick={() => onNavigate(tab.href)}>
-      <Icon name={tab.key === 'stats' ? 'chart' : 'list'} size={22} />
-      <span>{tab.key === 'stats' ? t('stats', 'Progreso') : t('library', 'Ejercicios')}</span>
+      <Icon name={tab.icon} size={22} />
+      <span>{t(tab.label) ?? tab.label}</span>
     </button>
   {/each}
 </nav>
@@ -109,6 +115,11 @@
     color: var(--swal-text);
     font-weight: 600;
   }
+  /* Targets stay finger-sized; labels wrap rather than truncate. */
+  #tabbar button span {
+    text-align: center;
+    line-height: 1.1;
+  }
   /* The central action sits above the bar so it reads as the primary control. */
   #tabbar .start .cir {
     display: grid;
@@ -127,11 +138,6 @@
   #tabbar .start.on .cir {
     outline: 2px solid var(--swal-accent);
     outline-offset: 2px;
-  }
-  /* Targets stay finger-sized; the labels wrap rather than truncate. */
-  #tabbar button span {
-    text-align: center;
-    line-height: 1.1;
   }
   @media (min-width: 769px) {
     #tabbar {
