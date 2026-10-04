@@ -13,6 +13,15 @@ than by convention.
 | Module | Upstream LOC | What it owns |
 |---|---|---|
 | `workout-model.ts` | 372 | Row shape: warm-up/work phases, set types (straight/dropset/restpause), per-side sets with a scalar mirror, mode resolution with legacy fallbacks |
+| `rep-range.ts` | 19 | The two bounds of double progression, normalised and stride-aligned |
+| `onerm.ts` | 102 | Estimated 1RM, with the rep cap and the metric-mode rule that stops a timed set being read as reps |
+
+## Deliberate deviation from upstream
+
+`onerm.ts` takes the assisted flag as an argument instead of looking the exercise up in
+openGym's 1,324-entry catalogue (`isAssisted(idOrEx)` → `EXIDX[idOrEx]`). BioHuman does not have
+that catalogue yet, and hard-coding a stub lookup would put a false claim in the type. The caller
+passes the fact; `isAssisted` lands with the catalogue in Wave 3. Same reasoning, same numbers.
 
 ## Rules for porting here
 
