@@ -35,8 +35,8 @@ export interface Side {
   w: number
   r: number
   done: boolean
-  rir?: number
-  rpe?: number
+  rir?: number | null
+  rpe?: number | null
   weightOrigin?: typeof WEIGHT_ORIGIN_MANUAL
   type?: SetType
   drops?: Drop[]
@@ -62,8 +62,10 @@ export interface WorkoutSet {
   type?: string
   drops?: Drop[]
   clusters?: Cluster[]
-  rir?: number
-  rpe?: number
+  /** RIR rating. null means "cleared", which is distinct from an absent key. */
+  rir?: number | null
+  /** RPE rating. null means "cleared", which is distinct from an absent key. */
+  rpe?: number | null
   weightOrigin?: string
   sides?: { L?: Side; R?: Side }
   /** Time mode. */

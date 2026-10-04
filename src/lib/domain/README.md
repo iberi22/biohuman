@@ -18,6 +18,10 @@ than by convention.
 | `dates.ts` | 20 | ISO dates and week keys (the noon-local trick in `startOfWeek` is load-bearing) |
 | `bodyweight.ts` | 28 | Weigh-ins grouped into weeks with means and change-vs-last-real-week |
 | `bar.ts` | 73 | Bar weight per equipment and per unit, and the plates-per-side split |
+| `effort.ts` | 174 | Effort as a statistic: RIR internally, RPE for display; summaries, weekly averages, histogram and colour bands |
+
+That is the whole P0 set. What remains is `history.js` (952) and `exercises.js` (302), and both
+need the catalogue — see below.
 
 ## Deliberate deviation from upstream
 
@@ -27,6 +31,12 @@ BioHuman does not have that catalogue yet, and hard-coding a stub lookup would p
 the type. The caller passes the fact — `assisted` for onerm, `eq` for bar — and the catalogue
 resolvers land in Wave 3. Same reasoning, same numbers; nothing else was changed to make this
 work.
+
+## Blocked until Wave 3
+
+`history.js` (952 LOC) and `exercises.js` (302 LOC) both import the 1,324-entry catalogue, which
+cannot be ported with its media: the photos and GIFs have unresolved title (see
+`PORT-OPENGYM-BIOHUMAN.md` §2). Their *metadata* can, and that is what Wave 3 brings.
 
 ## Rules for porting here
 
