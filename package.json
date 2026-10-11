@@ -17,7 +17,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@swal/ui": "file:../../../proyectosSWAL/cores/swal-ui",
+    "@swal/ui": "^0.2.0",
     "@swal/vault": "file:../../../proyectosSWAL/cores/swal-vault",
     "astro": "^7.3.1",
     "idb": "8.0.3",

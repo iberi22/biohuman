@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@swal/ui':
-        specifier: file:../../../proyectosSWAL/cores/swal-ui
-        version: file:../../../proyectosSWAL/cores/swal-ui(svelte@5.57.0)
+        specifier: ^0.2.0
+        version: 0.2.0(svelte@5.57.0)
       '@swal/vault':
         specifier: file:../../../proyectosSWAL/cores/swal-vault
         version: file:../../../proyectosSWAL/cores/swal-vault
@@ -1938,9 +1938,10 @@ packages:
       svelte: ^5.46.4
       vite: ^8.0.0-beta.7 || ^8.0.0
 
-  '@swal/ui@file:../../../proyectosSWAL/cores/swal-ui':
-    resolution: {directory: ../../../proyectosSWAL/cores/swal-ui, type: directory}
+  '@swal/ui@0.2.0':
+    resolution: {integrity: sha512-Tt/P49UF+KgLRuqSlYqbMW/HRmSXsiqX/YXoTXyeSoyJ18B/DNdhsp1aZXaUMYgis0bOAfp5efRRnbP8YST5yg==}
     engines: {node: '>=18'}
+    hasBin: true
     peerDependencies:
       svelte: ^5.0.0
 
@@ -5876,7 +5877,7 @@ snapshots:
       vite: 8.2.2(esbuild@0.28.2)(terser@5.51.2)(yaml@2.9.0)
       vitefu: 1.1.3(vite@8.2.2(esbuild@0.28.2)(terser@5.51.2)(yaml@2.9.0))
 
-  '@swal/ui@file:../../../proyectosSWAL/cores/swal-ui(svelte@5.57.0)':
+  '@swal/ui@0.2.0(svelte@5.57.0)':
     dependencies:
       svelte: 5.57.0
 
