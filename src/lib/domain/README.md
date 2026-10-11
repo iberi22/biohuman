@@ -10,33 +10,34 @@ than by convention.
 
 ## Ported so far
 
-| Module | Upstream LOC | What it owns |
-|---|---|---|
-| `workout-model.ts` | 372 | Row shape: warm-up/work phases, set types (straight/dropset/restpause), per-side sets with a scalar mirror, mode resolution with legacy fallbacks |
-| `rep-range.ts` | 19 | The two bounds of double progression, normalised and stride-aligned |
-| `onerm.ts` | 102 | Estimated 1RM, with the rep cap and the metric-mode rule that stops a timed set being read as reps |
-| `dates.ts` | 20 | ISO dates and week keys (the noon-local trick in `startOfWeek` is load-bearing) |
-| `bodyweight.ts` | 28 | Weigh-ins grouped into weeks with means and change-vs-last-real-week |
-| `bar.ts` | 73 | Bar weight per equipment and per unit, and the plates-per-side split |
-| `effort.ts` | 174 | Effort as a statistic: RIR internally, RPE for display; summaries, weekly averages, histogram and colour bands |
+| Module | Lines |
+|---|---|
+| `bar.ts` | 98 |
+| `bodyweight.ts` | 63 |
+| `catalogue.ts` | 410 |
+| `dates.ts` | 40 |
+| `effort.ts` | 335 |
+| `format.ts` | 117 |
+| `history.ts` | 521 |
+| `onerm.ts` | 267 |
+| `plates.ts` | 376 |
+| `progression.ts` | 1030 |
+| `rep-range.ts` | 35 |
+| `session-rows.ts` | 268 |
+| `tabbar.ts` | 120 |
+| `workout-model.ts` | 551 |
 
-That is the whole P0 set. What remains is `history.js` (952) and `exercises.js` (302), and both
-need the catalogue — see below.
+## history.ts & catalogue.ts
+
+`history.ts` is 521 lines with 36 exports. It is not blocked. The upstream `history.js` is 1252 lines with 72 exports. There are 38 names present in `src/lib/domain`, and 34 names still absent. The absent names are: workoutAt, setsFromRows, setLabel, defaultConfig, setsRepsOf, exLine, cleanupSg, pairAdjacent, unpairSuperset, NOTE_MAX, pinnedNoteFor, exNoteFor, freestyleConfig, barFloor, applyIntensifierPlan, applyFailurePlan, workoutVolume, workoutDay, setsDoneActive, lastBW, supersetUnits, sessionSections, moveSupersetUnit, moveRoutineEntry, streakWeeks, cascadeWeight, canBeWarmup, makeWarmupAt, makeWorkAt, setSpanAt, copySpanAt, copyRowAt, insertRowAt, removeLastSet.
+
+`catalogue.ts` indexes the 302-entry `exercises.json` and does not contain openGym photos or GIFs.
 
 ## Deliberate deviation from upstream
 
 `onerm.ts` and `bar.ts` take a fact as an argument instead of looking the exercise up in openGym's
-1,324-entry catalogue (`isAssisted(idOrEx)` → `EXIDX[idOrEx]`, `exOf(idOrId)` → `EXIDX[id]`).
-BioHuman does not have that catalogue yet, and hard-coding a stub lookup would put a false claim in
-the type. The caller passes the fact — `assisted` for onerm, `eq` for bar — and the catalogue
-resolvers land in Wave 3. Same reasoning, same numbers; nothing else was changed to make this
-work.
-
-## Blocked until Wave 3
-
-`history.js` (952 LOC) and `exercises.js` (302 LOC) both import the 1,324-entry catalogue, which
-cannot be ported with its media: the photos and GIFs have unresolved title (see
-`PORT-OPENGYM-BIOHUMAN.md` §2). Their *metadata* can, and that is what Wave 3 brings.
+catalogue. `onerm.ts` takes the `assisted` flag as an argument (the resolver is `isAssisted` in `catalogue.ts`), and `bar.ts` takes `eq`.
+Nothing else was changed to make this work.
 
 ## Rules for porting here
 
@@ -64,6 +65,6 @@ central button reads and does. `shell/TabBar.svelte` renders it.
 (`MobileNav`) with the full navigation, all 7 destinations. Adding a 5-tab bar underneath would put
 two navigation systems on the same screen and cut access to the two that do not fit in 5 tabs
 (`/intercambio`, `/ajustes`). That is a product decision, not a porting one — it needs the owner's
-call on whether mobile gets a bar, a menu, or a menu plus a floating action.
+call on whether mobile gets a bar, a menu, or a menu plus a floating action (swal-docs #90). `AppShell.svelte` has zero `TabBar` imports.
 
 The logic is landed and tested first so either answer is cheap to apply.
