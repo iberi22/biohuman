@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import TrainingApp from '../components/TrainingApp.svelte';
+import LibraryList from '../components/LibraryList.svelte';
+import { CATALOGUE } from '../lib/domain/catalogue';
 export const prerender = true;
 ---
-<Layout title="BioHuman"><TrainingApp page="library" client:load /></Layout>
+<Layout title="BioHuman"><LibraryList catalogue={CATALOGUE} client:load /></Layout>
