@@ -3,7 +3,9 @@ name = "biohuman"
 compatibility_date = "2026-09-04"
 compatibility_flags = ["nodejs_compat"]
 
-# Health data remains in IndexedDB. No remote database or AI binding.
-[[kv_namespaces]]
-binding = "SESSION"
-id = "57e68d72ca7545c39630c03677f3ac9d"
+# Offline-first: health data stays in the device's IndexedDB (biohuman-v1).
+# No bindings, no remote database, no backend. The scaffold's D1/R2/KV/AI
+# template bindings (which pointed at SHARED resources of other SWAL apps)
+# were removed because no code reads them: grep found zero uses of a
+# SESSION/KV/D1/R2 binding in src/, workers/, scripts/ or tests/. A test
+# pins this (src/wrangler.test.ts).

@@ -25,6 +25,9 @@ const pwaPlugins = VitePWA({
 
 export default defineConfig({
   output: 'server',
+  // Offline-first: la app no usa sesiones de Astro. Sin esto el adaptador de
+  // Cloudflare auto-configura un binding KV "SESSION" (ver src/wrangler.test.ts).
+  session: false,
   adapter: cloudflare(),
   server: { host: '127.0.0.1' },
   integrations: [svelte(), {
