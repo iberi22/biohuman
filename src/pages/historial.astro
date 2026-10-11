@@ -1,6 +1,67 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import TrainingApp from '../components/TrainingApp.svelte';
 export const prerender = true;
 ---
-<Layout title="BioHuman"><TrainingApp page="history" client:load /></Layout>
+<Layout title="BioHuman">
+  <div id="history-root"></div>
+</Layout>
+
+<script>
+  import { mount } from 'svelte';
+  import HistoryList from '../components/HistoryList.svelte';
+  import { readLocal } from '../lib/repository';
+  import {
+    exercises,
+    kgToDisplay,
+    sessionVolume,
+    orionDeepLink,
+  } from '../lib/training';
+
+  async function init() {
+    const prefs = await readLocal('preferences', { units: 'kg', language: 'es', theme: 'system', bodyKg: 70, subject: '' } as import('../lib/training').Preferences);
+    const sessions = await readLocal('workout-session', []);
+
+    // Display helpers mirroring the main-app history branch logic
+    const n = (count: number, single: string[], plural: string[]) =>
+      `${count} ${prefs.language === 'es' ? (count === 1 ? single[0] : single[1]) : (count === 1 ? plural[0] : plural[1])}`;
+    const name = (id: string) => {
+      const e = exercises.find((x: any) => x.id === id);
+      return e ? (prefs.language === 'es' ? e.name_es : e.name) : id;
+    };
+
+    const target = document.getElementById('history-root');
+    if (target) {
+      mount(HistoryList, {
+        target,
+        props: {
+          sessions,
+          exercises,
+          prefs,
+          kgToDisplay,
+          sessionVolume,
+          n,
+          name,
+          onexport: (s: any) => {
+            const blob = new Blob([JSON.stringify(s)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `swal-health-export.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          },
+          onorion: async (s: any) => {
+            try {
+              const link = await orionDeepLink(s);
+              window.location.href = link;
+            } catch (err) {
+              console.error('OrionHealth export failed', err);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  init();
+</script>
