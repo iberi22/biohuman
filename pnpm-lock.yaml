@@ -1941,6 +1941,7 @@ packages:
   '@swal/ui@file:../../../proyectosSWAL/cores/swal-ui':
     resolution: {directory: ../../../proyectosSWAL/cores/swal-ui, type: directory}
     engines: {node: '>=18'}
+    hasBin: true
     peerDependencies:
       svelte: ^5.0.0
 
