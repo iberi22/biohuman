@@ -45,14 +45,15 @@ export function validateChangeList(data: any, plan: any) {
     }
 
     // after is dropped on purpose so a hostile payload cannot ride along on a legal type in this slice
+    const safeId = typeof c.id === 'string' ? c.id.trim().slice(0, 40) : ''
     validChanges.push({
-      id: typeof c.id === 'string' ? c.id.trim().slice(0, 40) : `c${i}`,
+      id: safeId !== '' ? safeId : `c${i}`,
       type: c.type,
       why: c.why.trim().slice(0, 600),
       target: {
-        ...(t.routineId !== undefined && { routineId: t.routineId }),
-        ...(t.exId !== undefined && { exId: t.exId }),
-        ...(typeof t.weekday === 'number' && t.weekday >= 0 && t.weekday <= 6 && { weekday: t.weekday })
+        ...(typeof t.routineId === 'string' && { routineId: t.routineId }),
+        ...(typeof t.exId === 'string' && { exId: t.exId }),
+        ...(Number.isInteger(t.weekday) && t.weekday >= 0 && t.weekday <= 6 && { weekday: t.weekday })
       }
     })
   }
