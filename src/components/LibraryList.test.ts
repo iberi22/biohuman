@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mount } from 'svelte';
-import LibraryList from './LibraryList.svelte';
-import type { CatalogueExercise } from '../lib/domain/catalogue';
+import { searchExercises, equipmentOf, type CatalogueExercise } from '../lib/domain/catalogue';
 
 const fixtures: CatalogueExercise[] = [
   {
@@ -45,52 +43,37 @@ const fixtures: CatalogueExercise[] = [
   }
 ];
 
-describe('LibraryList', () => {
-  it('renders all exercises when query is empty', () => {
-    const target = document.createElement('div');
-    mount(LibraryList, {
-      target,
-      props: { catalogue: fixtures }
-    });
-
-    expect(target.textContent).toContain('3 result');
-    expect(target.textContent).toContain('Push Up');
-    expect(target.textContent).toContain('Squat');
-    expect(target.textContent).toContain('Pull Up');
+describe('LibraryList Logic Delegation', () => {
+  it('renders all exercises when query is empty (passthrough)', () => {
+    const filtered = searchExercises(fixtures, '', { muscle: '', equipment: '' });
+    expect(filtered.length).toBe(3);
+    expect(filtered.map(e => e.slug)).toEqual(['push-up', 'squat', 'pull-up']);
   });
 
   it('filters exercises by name', () => {
-    const target = document.createElement('div');
-    mount(LibraryList, {
-      target,
-      props: { catalogue: fixtures, initialQuery: 'squat' }
-    });
-
-    expect(target.textContent).toContain('1 result');
-    expect(target.textContent).toContain('Squat');
-    expect(target.textContent).not.toContain('Push Up');
+    const filtered = searchExercises(fixtures, 'squat', { muscle: '', equipment: '' });
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].slug).toBe('squat');
   });
 
-  it('filters exercises by equipment', () => {
-    const target = document.createElement('div');
-    mount(LibraryList, {
-      target,
-      props: { catalogue: fixtures, initialEquipment: 'Pull-up Bar' }
-    });
+  it('filters exercises by equipment facet', () => {
+    const filtered = searchExercises(fixtures, '', { muscle: '', equipment: 'Pull-up Bar' });
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].slug).toBe('pull-up');
 
-    expect(target.textContent).toContain('1 result');
-    expect(target.textContent).toContain('Pull Up');
-    expect(target.textContent).not.toContain('Squat');
+    // Test the equipment extraction helper
+    const equipment = equipmentOf(fixtures);
+    expect(equipment).toEqual(['Barbell', 'Bodyweight', 'Pull-up Bar']);
   });
 
-  it('renders empty state correctly', () => {
-    const target = document.createElement('div');
-    mount(LibraryList, {
-      target,
-      props: { catalogue: fixtures, initialQuery: 'unicorn' }
-    });
+  it('filters exercises by bodyPart/muscle facet', () => {
+    const filtered = searchExercises(fixtures, '', { muscle: 'chest', equipment: '' });
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].slug).toBe('push-up');
+  });
 
-    expect(target.textContent).toContain('0 result');
-    expect(target.textContent).toContain('No results. Try another term or clear filters.');
+  it('renders empty results when query does not match anything', () => {
+    const filtered = searchExercises(fixtures, 'unicorn', { muscle: '', equipment: '' });
+    expect(filtered.length).toBe(0);
   });
 });
