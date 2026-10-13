@@ -1,0 +1,18 @@
+# pnpm 11 no longer reads the "pnpm" field in package.json, so every setting
+# lives here. There is no workspace: this file is the settings root only.
+#
+# Overrides are the four transitive security fixes that pnpm cannot reach with
+# `pnpm update`, because the parent either pins the vulnerable version exactly
+# or sits too deep in the tree to be re-resolved without upgrading unrelated
+# packages (a fresh resolve would also move astro, vite, wrangler and workerd).
+# The other five advisories in the same batch are fixed by normal updates.
+overrides:
+  # workbox-build -> glob -> minimatch (^2.0.1) / (^5.0.8)
+  "minimatch@5>brace-expansion": 2.1.7
+  "minimatch@10>brace-expansion": 5.0.12
+  # workbox-build -> @rollup/plugin-terser (^7.0.3)
+  "serialize-javascript": 7.1.2
+  # miniflare pins sharp and undici exactly; the patch releases carry the fixes
+  # (sharp 0.35.2 -> GHSA libheif, undici 7.29.0 -> TLS/WebSocket DoS).
+  "miniflare>sharp": 0.35.5
+  "miniflare>undici": 7.30.0
