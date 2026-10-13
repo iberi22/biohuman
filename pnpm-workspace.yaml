@@ -1,6 +1,19 @@
 # pnpm 11 no longer reads the "pnpm" field in package.json, so every setting
 # lives here. There is no workspace: this file is the settings root only.
 #
+# esbuild and workerd are the only dependencies in this tree that declare a
+# postinstall, and pnpm 11 blocks dependency build scripts unless they are
+# allowed here. Because `strictDepBuilds` defaults to true in pnpm 11, blocked
+# scripts are a hard error (ERR_PNPM_IGNORED_BUILDS, exit 1) — so a plain
+# `pnpm install`, and therefore CI (which has no npmrc of its own), fails on a
+# clean checkout without this map. Both scripts are trusted, offline, and only
+# validate/link the platform binary that already ships as an optional
+# dependency; the owner's machine still runs none of them because its npmrc
+# sets ignore-scripts=true, and every gate was verified in both states.
+allowBuilds:
+  esbuild: true
+  workerd: true
+
 # Overrides are the four transitive security fixes that pnpm cannot reach with
 # `pnpm update`, because the parent either pins the vulnerable version exactly
 # or sits too deep in the tree to be re-resolved without upgrading unrelated
