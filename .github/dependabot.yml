@@ -10,6 +10,14 @@ updates:
     open-pull-requests-limit: 2
     labels:
       - "dependencies"
+    ignore:
+      # Deferred: TypeScript 7 breaks `astro check`/`pnpm build` today.
+      # @astrojs/check@0.9.10 peers on `^5.0.0 || ^6.0.0` and
+      # svelte2tsx@0.7.61 on `^4.9.4 || ^5.0.0 || ^6.0.0`, so 7.x is
+      # rejected before it can type-check. Drop this once both accept 7.x.
+      - dependency-name: "typescript"
+        versions:
+          - ">=7.0.0"
     groups:
       # Version updates: everything into a single PR.
       all-dependencies:
