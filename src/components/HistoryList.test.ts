@@ -124,13 +124,23 @@ describe('session display helpers from the training layer', () => {
 });
 
 describe('historial page wiring', () => {
-  it('loads local sessions and renders HistoryList inside Layout without navigation changes', () => {
-    expect(historialSource).toContain('readLocal');
-    expect(historialSource).toContain('sessions');
-    expect(historialSource).toContain('HistoryList');
+  // The standalone `mount(HistoryList)` page this block used to assert shipped
+  // three defects, all of them visible in `pnpm test:e2e`:
+  //   1. it never called `initializeLocalStorage()`, so `readLocal` hit an
+  //      uninitialised adapter and /historial always rendered the empty state
+  //      ("Cada comienzo cuenta.") even with saved sessions;
+  //   2. it dropped `AppShell`, so /historial had no navigation at all;
+  //   3. it dropped the OrionHealth deep-link panel, so the generated
+  //      `orionhealth://import?p=...` URI was never shown.
+  // The route now goes through `TrainingApp page="history"`, which owns the
+  // shell, the storage initialisation and that panel. `HistoryList` stays in
+  // the tree, still unwired, with its component-contract tests above.
+  it('renders the history route through TrainingApp without a second navigation system', () => {
+    expect(historialSource).toContain('TrainingApp');
+    expect(historialSource).toContain('page="history"');
     expect(historialSource).toContain('Layout');
     expect(historialSource).toContain('prerender');
-    for (const token of ['TabBar', 'AppShell', 'TrainingApp']) {
+    for (const token of ['TabBar', 'readLocal', 'HistoryList']) {
       expect(historialSource).not.toContain(token);
     }
   });
