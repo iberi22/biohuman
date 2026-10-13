@@ -1,0 +1,58 @@
+name: ci
+
+# Guards THIS repository (biohuman), not the app template: every PR and every
+# push to main runs the same gates that were verified locally — install from the
+# frozen lockfile, Astro check, tsc, vitest, the SSR build and the Playwright
+# suite against the built output in dist/client.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: "install · check · type-check · test · build · e2e"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with: { version: 11 }
+
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: pnpm }
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+        env:
+          # Chromium is installed explicitly below; skip the postinstall download
+          # so the runner does not also pull Firefox and WebKit.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      - name: Astro check
+        run: pnpm run check
+
+      - name: TypeScript
+        run: pnpm run type-check
+
+      - name: Unit tests
+        run: pnpm run test
+
+      - name: Build (SSR + client)
+        run: pnpm run build
+
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      # playwright.config.ts serves the prerendered output with `python3 -m
+      # http.server --directory dist/client`, so the build above must run first.
+      - name: E2E (Playwright, chromium)
+        run: pnpm run test:e2e

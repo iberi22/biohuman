@@ -19,8 +19,8 @@ importers:
         specifier: ^0.2.0
         version: 0.2.0(svelte@5.57.0)
       '@swal/vault':
-        specifier: file:../../../proyectosSWAL/cores/swal-vault
-        version: file:../../../proyectosSWAL/cores/swal-vault
+        specifier: ^0.2.0
+        version: 0.2.0
       astro:
         specifier: ^7.3.1
         version: 7.3.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(terser@5.51.2)(yaml@2.9.0)
@@ -1794,8 +1794,8 @@ packages:
     peerDependencies:
       svelte: ^5.0.0
 
-  '@swal/vault@file:../../../proyectosSWAL/cores/swal-vault':
-    resolution: {directory: ../../../proyectosSWAL/cores/swal-vault, type: directory}
+  '@swal/vault@0.2.0':
+    resolution: {integrity: sha512-MJuHP6qO9kM6smWeQbzyYb8iIoqZsVXJrzXSfSfVbKzUDb3g8pfpIBe+LlDcUIueNpYn/QZ9Pspq0+kwgTOo0w==}
     engines: {node: '>=20'}
 
   '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1':
@@ -5624,7 +5624,7 @@ snapshots:
     dependencies:
       svelte: 5.57.0
 
-  '@swal/vault@file:../../../proyectosSWAL/cores/swal-vault': {}
+  '@swal/vault@0.2.0': {}
 
   '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1':
     dependencies:
