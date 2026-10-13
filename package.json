@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@swal/ui": "^0.2.0",
-    "@swal/vault": "file:../../../proyectosSWAL/cores/swal-vault",
+    "@swal/vault": "^0.2.0",
     "astro": "^7.3.1",
     "idb": "8.0.3",
     "y-indexeddb": "9.0.12",

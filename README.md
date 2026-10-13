@@ -4,7 +4,7 @@ PWA de entrenamiento local-first del ecosistema de salud SWAL. Astro 7 + Svelte 
 
 ## Desarrollo
 
-Requiere Node 24+, pnpm 11 y los cores locales `~/proyectosSWAL/cores/{swal-ui,swal-vault}`. Las dependencias file funcionan tanto en `~/proyectosSWAL/apps/swal-training` como en `~/wt/salud/t1`.
+Requiere Node 24+ y pnpm 11. `@swal/ui` y `@swal/vault` se consumen del registro npm (no hay dependencias `file:`), así que el repositorio instala y construye en cualquier clon.
 
 ```sh
 xavier exec "pnpm install --offline"
@@ -15,7 +15,7 @@ xavier exec "pnpm build"
 xavier exec "pnpm test:e2e"
 ```
 
-Astro 7 detecta agentes y arranca dev en segundo plano. Para ver un error de arranque: `.astro/dev.log`; para parar: `xavier exec "pnpm exec astro dev stop"`. El smoke sirve el build prerenderizado con Python 3 (ejecutar build primero) y usa Chromium local, sin descargar navegadores; en NixOS usa el Chromium del sistema o PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH. La compatibilidad de Wrangler es 2026-09-04, soportada por el workerd instalado. No hay despliegue ni push automático.
+Astro 7 detecta agentes y arranca dev en segundo plano. Para ver un error de arranque: `.astro/dev.log`; para parar: `xavier exec "pnpm exec astro dev stop"`. El smoke sirve el build prerenderizado con Python 3 (ejecutar build primero) y usa Chromium local, sin descargar navegadores; en NixOS usa el Chromium del sistema o PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH. La compatibilidad de Wrangler es 2026-09-04, soportada por el workerd instalado. El despliegue lo hace `.github/workflows/deploy.yml` en cada push a `main` (requiere los secretos `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`); no hay push automático de código.
 
 ## Funciones
 
@@ -59,5 +59,5 @@ No se fija URL HTTPS de OrionHealth porque el contrato no especifica el dominio 
 
 ## Pendiente
 
-- Cambiar el shell local (`src/lib/shell`) por `AppShell`/`MobileNav`/`Icon` de `@swal/ui` cuando el core con shell (salud/c2) esté en la rama canónica; la dependencia `file:` actual apunta al core sin shell.
+- Cambiar el shell local (`src/lib/shell`) por `AppShell`/`MobileNav`/`Icon` de `@swal/ui` cuando el core con shell (salud/c2) esté en la rama canónica; `@swal/ui` 0.2.0, el paquete publicado, todavía no exporta ese shell.
 - Sin backend en la ruta crítica: todo funciona offline con IndexedDB; la nube (vault/billing) sería una suscripción opcional y el mesh P2P de la plantilla se conserva en `src/lib/mesh.ts`.
