@@ -2,7 +2,7 @@
 import { describe,it,expect } from 'vitest';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { exercises,starterRoutines,startSession,logSet,finishSession,sessionVolume,progress,weeklyVolume,metEnergy,metFor,normalizeSearch,searchExercises,parseHealthFile,toHealthFile,GOS_DATASET_NONE,validateWorkout,validateDietaryProfile,target,ulid,displayToKg,kgToDisplay } from './training';
+import { exercises,starterRoutines,startSession,logSet,finishSession,sessionVolume,progress,weeklyVolume,metEnergy,metFor,normalizeSearch,searchExercises,parseHealthFile,toHealthFile,GOS_DATASET_NONE,validateWorkout,validateDietaryProfile,target,ulid,displayToKg,kgToDisplay,validateRoutine,moveExercise,removeExercise } from './training';
 const subject=`subj_${ulid()}`;
 function fixture(){let a=startSession({id:'test',name:'Press',exercises:[target('bench-press')]},70);a.startedAt='2026-10-01T10:00:00Z';a=logSet(a,{reps:8,weightKg:60});return finishSession(a,subject,'2026-10-01T10:30:00Z');}
 const mods=import.meta.glob('../../vendor/health-contract/schemas/v1/**/*.json',{eager:true,import:'default'}) as Record<string,any>;
@@ -38,4 +38,12 @@ describe('Health v1 contract',()=>{
  it('schema and validator reject malformed sets and energy',()=>{const r=fixture();r.data.exercises[0].sets=[{reps:-1}];expect(validate(r)).toBe(false);expect(()=>validateWorkout(r)).toThrow();r.data.exercises[0].sets=[{reps:8}];r.data.energy!.kcal=-1;expect(validate(r)).toBe(false);expect(()=>validateWorkout(r)).toThrow();});
  it('rejects reversed timestamps and non-array transport',()=>{const r=fixture();r.data.endedAt='2026-09-01T00:00:00Z';expect(()=>validateWorkout(r)).toThrow();expect(()=>parseHealthFile(JSON.stringify(fixture()))).toThrow();});
  it('imports the optional dietary profile and rejects malformed GOS refs',()=>{const r={schema:'swal.health/v1/dietary-profile',id:ulid(),subject,createdAt:new Date().toISOString(),source:{app:'orionhealth',version:'1.0.0'},gosDataset:GOS_DATASET_NONE,data:{allergens:['gos:allergen/peanut'],diets:['gos:diet/mediterranean'],targets:{proteinGPerDay:140},expiresAt:'2027-01-01T00:00:00Z'}};expect(()=>validateDietaryProfile(r)).not.toThrow();expect(parseHealthFile(JSON.stringify([r]))).toEqual([r]);r.data.allergens=['peanut'];expect(()=>validateDietaryProfile(r)).toThrow();});
+});
+
+describe('Routine editor',()=>{
+ it('rejects empty name or no exercises',()=>expect(()=>validateRoutine({id:'a',name:'',exercises:[]})).toThrow('Añade un nombre y ejercicios.'));
+ it('rejects duplicated exercises',()=>expect(()=>validateRoutine({id:'a',name:'x',exercises:[target('bench-press'),target('bench-press')]})).toThrow('Ejercicio duplicado.'));
+ it('rejects invalid targets',()=>expect(()=>validateRoutine({id:'a',name:'x',exercises:[{...target('bench-press'),sets:0}]})).toThrow('Revisa los objetivos de la rutina.'));
+ it('moves items and preserves order',()=>expect(moveExercise({id:'a',name:'x',exercises:[target('bench-press'),target('squat')]},0,1).exercises[0].ref).toBe('wg:squat'));
+ it('removes the last item to empty the routine',()=>expect(removeExercise({id:'a',name:'x',exercises:[target('bench-press')]},0).exercises).toEqual([]));
 });
