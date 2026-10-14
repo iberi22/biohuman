@@ -54,6 +54,25 @@ export function finishSession(active:ActiveSession,subject:string,endedAt=new Da
 }
 export function startSession(routine:Routine,bodyKg:number):ActiveSession { if(!routine.exercises.length)throw Error('Rutina vacía');return {id:ulid(),routine:structuredClone(routine),startedAt:new Date().toISOString(),index:0,exercises:routine.exercises.map(e=>({ref:e.ref,sets:[]})),restUntil:0,bodyKg}; }
 export function target(slug:string,sets=3,reps=10,durationS=45,restS=60):Target {const e=exerciseByRef(`wg:${slug}`);return {ref:e.id,sets,reps,weightKg:0,durationS,distanceM:400,restS};}
+
+export function validateRoutine(routine: Partial<Routine>): asserts routine is Routine {
+  if(!routine.name?.trim()||!routine.exercises?.length)throw Error('Añade un nombre y ejercicios.');
+  const seen=new Set<string>();
+  for(const x of routine.exercises){
+    if(seen.has(x.ref))throw Error('Ejercicio duplicado.');
+    seen.add(x.ref);
+    if(!Number.isInteger(x.sets)||x.sets<1||x.sets>100||!Number.isInteger(x.reps)||x.reps<1||![x.weightKg,x.durationS,x.distanceM,x.restS].every(Number.isFinite)||x.weightKg<0||x.durationS<=0||x.distanceM<=0||x.restS<0)throw Error('Revisa los objetivos de la rutina.');
+  }
+}
+export function moveExercise(routine:Routine,index:number,direction:number):Routine {
+  const list=[...routine.exercises];
+  [list[index],list[index+direction]]=[list[index+direction],list[index]];
+  return {...routine,exercises:list};
+}
+export function removeExercise(routine:Routine,index:number):Routine {
+  return {...routine,exercises:routine.exercises.filter((_,i)=>i!==index)};
+}
+
 export const starterRoutines:Routine[]=[
   {id:'starter-full-body',name:'Full body principiante',exercises:['bodyweight-squat','knee-push-up','banded-row','glute-bridge','plank'].map(s=>target(s,3,10))},
   {id:'starter-ppl',name:'Push/Pull/Legs',exercises:['bench-press','overhead-press','lat-pulldown','seated-row','squat','leg-curl'].map(s=>target(s))},
