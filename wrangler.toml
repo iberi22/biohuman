@@ -1,7 +1,11 @@
 name = "biohuman"
-# Custom domain biohuman.swal.network is set at deploy time (not deployed here).
 compatibility_date = "2026-09-04"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+routes = [
+  { pattern = "biohuman.swal.network", custom_domain = true }
+]
 
 # Offline-first: health data stays in the device's IndexedDB (biohuman-v1).
 # No bindings, no remote database, no backend. The scaffold's D1/R2/KV/AI
