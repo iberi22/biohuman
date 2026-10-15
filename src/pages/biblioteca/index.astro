@@ -1,0 +1,84 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AppShell from '../../lib/shell/AppShell.svelte';
+import exercises from '../../data/exercises.json';
+
+export const prerender = true;
+
+// Define navigation to match AppShell requirements
+const nav = [
+  { href: '/', label: 'Inicio', icon: 'home' },
+  { href: '/rutinas', label: 'Plan', icon: 'calendar' },
+  { href: '/historial', label: 'Progreso', icon: 'chart' },
+  { href: '/biblioteca', label: 'Ejercicios', icon: 'list' }
+];
+
+const t = (s: string) => s;
+---
+<Layout title="Biblioteca · BioHuman">
+  <AppShell currentPath="/biblioteca" nav={nav} menuLabel="Menú" brandName="BioHuman" tickerMessage="En este dispositivo" client:load>
+    <header class="intro">
+      <p class="eyebrow">BIOHUMAN</p>
+      <h1>Ejercicios</h1>
+      <p class="muted">Explora la biblioteca completa de ejercicios.</p>
+    </header>
+
+    <div class="panel stack">
+      <input type="search" id="search" placeholder="Buscar ejercicio..." aria-label="Buscar ejercicio" class="full-width" />
+      <ul id="exercise-list" class="stack" style="list-style:none; padding:0; margin:0;">
+        {exercises.map((e) => (
+          <li data-name={e.name_es.toLowerCase()}>
+            <a href={`/biblioteca/${e.slug}`}>{e.name_es}</a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </AppShell>
+</Layout>
+
+<script>
+  import { filterExercises } from '../../lib/exerciseIndex';
+
+  const input = document.getElementById('search') as HTMLInputElement;
+  const list = document.getElementById('exercise-list');
+
+  if (input && list) {
+    const items = Array.from(list.querySelectorAll('li'));
+    const names = items.map(li => li.getAttribute('data-name') || '');
+
+    input.addEventListener('input', () => {
+      const query = input.value;
+      const matchedIndices = filterExercises(names, query);
+
+      items.forEach((item, index) => {
+        if (matchedIndices.includes(index)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+  }
+</script>
+
+<style>
+  .full-width {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  li a {
+    text-decoration: none;
+    color: var(--swal-text);
+    font-weight: 500;
+  }
+  li a:hover {
+    text-decoration: underline;
+  }
+</style>
