@@ -1,12 +1,16 @@
 import { openDB } from 'idb';
 import type { DomainRecord, StorageAdapter } from './domain';
 import { setStorageAdapter } from './domain';
-function ensureCloneable<T>(val: T): T {
+// IndexedDB stores with structured clone, which rejects Proxies (Svelte $state) with a
+// DataCloneError. Callers pass $state.snapshot(); this is the safety net for a missed one.
+// Records are plain JSON data (numbers, strings, arrays), so the JSON round trip is lossless.
+export function ensureCloneable<T>(val: T): T {
   try {
     structuredClone(val);
     return val;
   } catch (err) {
-    console.warn('Value is not cloneable, converting it', err);
+    if (!(err instanceof Error) || err.name !== 'DataCloneError') throw err;
+    console.warn('Record is not cloneable (missing $state.snapshot?), storing a plain copy', err);
     return JSON.parse(JSON.stringify(val));
   }
 }
