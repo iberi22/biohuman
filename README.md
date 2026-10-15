@@ -61,3 +61,16 @@ No se fija URL HTTPS de OrionHealth porque el contrato no especifica el dominio 
 
 - Cambiar el shell local (`src/lib/shell`) por `AppShell`/`MobileNav`/`Icon` de `@swal/ui` cuando el core con shell (salud/c2) esté en la rama canónica; `@swal/ui` 0.2.0, el paquete publicado, todavía no exporta ese shell.
 - Sin backend en la ruta crítica: todo funciona offline con IndexedDB; la nube (vault/billing) sería una suscripción opcional y el mesh P2P de la plantilla se conserva en `src/lib/mesh.ts`.
+
+## Estado de features
+
+El seguimiento detallado de capacidades y madurez del proyecto se gestiona en [.gitcore/features.json](.gitcore/features.json) bajo el estándar GitCore.
+
+Resumen del ledger (2026-10-15):
+- **Total features**: 28
+- **Implementadas (`implemented`)**: 22 (verificadas contra código; suite vitest 505/505 en verde el 2026-10-15)
+- **En progreso (`in_progress`)**: 3 (PRs draft #12 y #13, y suite de humo tester-army/e2e)
+- **Parciales (`partial`)**: 1 (CI en rama main, bloqueado por facturación en GitHub Actions de repos privados)
+- **Planificadas (`planned`)**: 2 (despliegue público en biohuman.swal.network y retiro del scaffold de facturación)
+- **Bloqueadores de lanzamiento (`launch_blocker: true`)**: 3 (despliegue público, CI en main, suite tester-army)
+

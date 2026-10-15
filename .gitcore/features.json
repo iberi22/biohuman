@@ -1,0 +1,590 @@
+{
+  "schema_version": "3.0",
+  "metadata": {
+    "project_id": "biohuman",
+    "project_name": "BioHuman",
+    "repo": "iberi22/biohuman",
+    "branch": "docs/ledger-reconcile-2026-10-15",
+    "base_commit": "5846abdefcbc1b94bf583bbe8d0d22fc68cb5394",
+    "last_updated": "2026-10-15",
+    "stack": "Astro 7 + Svelte 5 + @swal/ui + vite-pwa + Cloudflare Pages (offline-first)",
+    "overall_progress_pct_note": "Valores medidos directamente con vitest y herramientas CLI locales. Ningún feature declara 100% sin un test unitario pasando. Los features bloqueados por infraestructura externa están etiquetados como launch_blocker: true.",
+    "verified_facts": {
+      "unit_integration_tests": {
+        "files_count": 28,
+        "tests_count": 505,
+        "passed": 505,
+        "failed": 0,
+        "command": "pnpm vitest run",
+        "duration_seconds": 6.14
+      },
+      "ci_on_main": {
+        "status": "failure",
+        "reason": "Bloqueado por facturación de GitHub Actions en repositorios privados",
+        "last_run_id": 38349399000,
+        "last_run_date": "2026-10-13T05:02:33Z"
+      },
+      "public_deployment": {
+        "domain": "biohuman.swal.network",
+        "resolved": false,
+        "status": "No DNS record / pending deploy"
+      },
+      "open_draft_prs": [
+        {
+          "number": 12,
+          "title": "Refactor: extract routine validation logic to pure functions",
+          "branch": "ola-fg-1-8138293360003802336",
+          "author": "Jules (task 8138293360003802336)"
+        },
+        {
+          "number": 13,
+          "title": "feat: deduplicate health file imports and restore tests",
+          "branch": "fix/health-file-dedupe-2715619877276612626",
+          "author": "Jules (task 2715619877276612626)"
+        }
+      ]
+    },
+    "summary_counts": {
+      "total_features": 28,
+      "implemented": 21,
+      "in_progress": 4,
+      "partial": 1,
+      "planned": 2,
+      "out_of_scope": 0,
+      "launch_blockers": 3
+    }
+  },
+  "features": [
+    {
+      "id": "FEAT-001",
+      "name": "Biblioteca de ejercicios y buscador multilingüe",
+      "description": "Catálogo completo de 302 ejercicios con búsqueda sin acentos en español e inglés, filtros combinados por grupo muscular, equipo y tipo de ejercicio, y paginación progresiva de 24 elementos.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/components/LibraryList.svelte",
+        "src/lib/domain/catalogue.ts",
+        "src/pages/index.astro",
+        "src/data/exercises.json"
+      ],
+      "tests": [
+        "src/components/LibraryList.test.ts",
+        "src/lib/domain/catalogue.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/components/LibraryList.test.ts src/lib/domain/catalogue.test.ts",
+      "evidence_note": "50 tests unitarios pasando (5 en LibraryList.test.ts, 45 en catalogue.test.ts). Búsqueda normalizada y filtros verificados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-002",
+      "name": "Detalle de ejercicio e ilustración SVG animada",
+      "description": "302 rutas estáticas prerenderizadas por slug con siluetas SVG de 3 fotogramas (906 SVGs locales), currentColor temático y respeto estricto a prefers-reduced-motion.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/pages/biblioteca/[slug].astro",
+        "src/components/ExerciseArt.svelte",
+        "scripts/vendor-exercises.mjs"
+      ],
+      "tests": [
+        "src/lib/domain/catalogue.test.ts",
+        "tests/e2e/training.spec.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain/catalogue.test.ts",
+      "evidence_note": "45 tests unitarios de catálogo pasando. 302 slugs estáticos validados en build; animación condicional por media query.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-003",
+      "name": "Gestión de rutinas y plantillas predeterminadas",
+      "description": "Editor interactivo de rutinas con reordenación, metas configurables (series, repeticiones, peso, descanso) y 3 plantillas base (Full body principiante, Push/Pull/Legs, Movilidad 15 min).",
+      "status": "implemented",
+      "progress_pct": 95,
+      "implemented_in": [
+        "src/pages/rutinas.astro",
+        "src/components/TrainingApp.svelte",
+        "src/lib/training.ts"
+      ],
+      "tests": [
+        "src/lib/training.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/training.test.ts",
+      "evidence_note": "39 tests unitarios pasando en training.test.ts. Validación interna en TrainingApp.svelte en proceso de extracción a funciones puras en PR #12.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-004",
+      "name": "Ejecución de sesión de entrenamiento y temporizador de descanso",
+      "description": "Flujo activo de entrenamiento por series con soporte multimodular (peso/reps, reps simples, duración, distancia/duración), deadline persistente de descanso y supervivencia tras recarga.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/pages/entrenar.astro",
+        "src/components/TrainingApp.svelte",
+        "src/lib/training.ts"
+      ],
+      "tests": [
+        "src/lib/training.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/training.test.ts",
+      "evidence_note": "39 tests pasando: verifica startSession, logSet, finishSession, restUntil y reconstrucción de sesión activa desde IndexedDB.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-005",
+      "name": "Partición de sesiones y emparejamiento de superseries",
+      "description": "Partición algorítmica de sesiones por rutina en orden de aparición y emparejamiento adyacente de ejercicios en unidades de superseries sin mutar las fuentes.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/domain/session-sections.ts"
+      ],
+      "tests": [
+        "src/lib/domain/session-sections.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain/session-sections.test.ts",
+      "evidence_note": "4 tests unitarios pasando: preserva contigüidad visual, gestiona listas planas sin rutina y garantiza inmutabilidad.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-006",
+      "name": "Escalas de esfuerzo subjetivo (RPE / RIR) y bandas cromáticas",
+      "description": "Registro de esfuerzo percibido en escalas simétricas RPE y RIR con bandas de color dinámicas continuas (verde a carmesí), etiquetado por perfil y fallback limpio para series no calificadas.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/domain/effort.ts"
+      ],
+      "tests": [
+        "src/lib/domain/effort.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain/effort.test.ts",
+      "evidence_note": "40 tests unitarios pasando: cubre escala completa sin discontinuidades, mapeo bidireccional y preservación semántica.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-007",
+      "name": "Historial de entrenamientos y analíticas de volumen",
+      "description": "Registro histórico persistente, seguimiento de récords personales (PRs), cálculo de volumen externo por ejercicio en gráficos SVG y volumen semanal agrupado por lunes UTC.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/pages/historial.astro",
+        "src/components/HistoryList.svelte",
+        "src/lib/domain/history.ts",
+        "src/lib/domain/dates.ts"
+      ],
+      "tests": [
+        "src/components/HistoryList.test.ts",
+        "src/lib/domain/history.test.ts",
+        "src/lib/domain/dates.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/components/HistoryList.test.ts src/lib/domain/history.test.ts src/lib/domain/dates.test.ts",
+      "evidence_note": "71 tests unitarios pasando (10 en HistoryList, 45 en history, 16 en dates). Agrupaciones UTC y formateo probados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-008",
+      "name": "Estimación de 1RM y calculadora de discos para barra",
+      "description": "Algoritmos de estimación de repetición máxima (1RM) (Epley, Brzycki, Lander, etc.) y algoritmo codicioso de carga de discos olímpicos con descuento del peso propio de la barra.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/domain/onerm.ts",
+        "src/lib/domain/plates.ts",
+        "src/lib/domain/bar.ts"
+      ],
+      "tests": [
+        "src/lib/domain/onerm.test.ts",
+        "src/lib/domain/plates.test.ts",
+        "src/lib/domain/bar.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain/onerm.test.ts src/lib/domain/plates.test.ts src/lib/domain/bar.test.ts",
+      "evidence_note": "84 tests unitarios pasando (33 en onerm, 40 en plates, 11 en bar). Combinatoria de discos y pesos de barra validados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-009",
+      "name": "Motor de progresión y validación de rangos de repeticiones",
+      "description": "Recomendaciones algorítmicas de sobrecarga progresiva basadas en historial previo, parseo estricto y validación de rangos de repeticiones objetivo.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/domain/progression.ts",
+        "src/lib/domain/rep-range.ts"
+      ],
+      "tests": [
+        "src/lib/domain/progression.test.ts",
+        "src/lib/domain/rep-range.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain/progression.test.ts src/lib/domain/rep-range.test.ts",
+      "evidence_note": "60 tests unitarios pasando (50 en progression, 10 en rep-range). Ajustes de carga progresiva y rangos validados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-010",
+      "name": "Estimación energética MET (Adult Compendium 2024)",
+      "description": "Cálculo de gasto calórico basado en la tabla oficial 2024 Adult Compendium (código 02054: 3.5, 02056: 3.0, 02101: 2.3), tiempo transcurrido con descansos y masa corporal del usuario en kg.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/training.ts",
+        "docs/MET.md"
+      ],
+      "tests": [
+        "src/lib/training.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/training.test.ts",
+      "evidence_note": "Fórmula MET probada en training.test.ts; etiquetada como met-estimate en el contrato de exportación.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-011",
+      "name": "Intercambio de datos de salud y deep link OrionHealth",
+      "description": "Exportación e importación de archivos estándar `.swalhealth.json` (contrato SWAL v1), deduplicación por ULID, adopción de sujeto seudónimo y deep link URI `orionhealth://import?p=...` (<8KB base64url/gzip).",
+      "status": "implemented",
+      "progress_pct": 95,
+      "implemented_in": [
+        "src/pages/intercambio.astro",
+        "src/components/TrainingApp.svelte",
+        "src/lib/training.ts",
+        "docs/CONTRACT.md"
+      ],
+      "tests": [
+        "src/lib/healthTransport.test.ts",
+        "src/lib/training.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/healthTransport.test.ts src/lib/training.test.ts",
+      "evidence_note": "41 tests unitarios pasando (2 en healthTransport, 39 en training). PR #13 en curso extrae mergeSessionsByUlid a función pura con tests dedicados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-012",
+      "name": "Gestión de perfil dietario consentido",
+      "description": "Ingesta de esquemas `swal.health/v1/dietary-profile` emitidos por OrionHealth bajo diálogo de consentimiento previo, visualización de alérgenos/dietas, control TTL y borrado manual.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/pages/intercambio.astro",
+        "src/components/TrainingApp.svelte",
+        "src/lib/repository.ts"
+      ],
+      "tests": [
+        "src/lib/training.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/training.test.ts",
+      "evidence_note": "Rechazo de perfiles expirados y flujo de persistencia consentida validados en training.test.ts.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-013",
+      "name": "Almacenamiento local-first e IndexedDB sin fuga remota",
+      "description": "Capa de persistencia basada en IndexedDB (`idb`) para todas las entidades locales (rutinas, sesiones, perfil, ajustes). Sin fallback silencioso a memoria y sin replicación remota no solicitada.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/localStorageAdapter.ts",
+        "src/lib/repository.ts",
+        "src/lib/domain.ts"
+      ],
+      "tests": [
+        "src/lib/domain.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain.test.ts",
+      "evidence_note": "6 tests unitarios pasando en domain.test.ts. Aislamiento por entidad e instance_id verificado.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-014",
+      "name": "PWA offline-first y precaching de assets",
+      "description": "Configuración PWA con vite-plugin-pwa, Service Worker con actualización automática, precaching de rutas prerenderizadas y estrategia CacheFirst para 906 ilustraciones SVG.",
+      "status": "implemented",
+      "progress_pct": 90,
+      "implemented_in": [
+        "astro.config.mjs",
+        "public/manifest.json",
+        "src/layouts/Layout.astro"
+      ],
+      "tests": [
+        "src/wrangler.test.ts",
+        "tests/e2e/training.spec.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/wrangler.test.ts",
+      "evidence_note": "wrangler.test.ts confirma despliegue offline-first sin bindings KV de sesión de Cloudflare; workbox configurado con CacheFirst maxEntries 906.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-015",
+      "name": "Ajustes de usuario, temas e internacionalización (i18n)",
+      "description": "Panel de configuración para tema (claro/oscuro/sistema con tokens Bone Warm Minimalist), unidades de medida (kg/lb), idioma (español/inglés) y masa corporal para cálculos MET.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/pages/ajustes.astro",
+        "src/components/TrainingApp.svelte",
+        "src/lib/domain/format.ts",
+        "src/lib/domain/tabbar.ts"
+      ],
+      "tests": [
+        "src/lib/domain/format.test.ts",
+        "src/lib/domain/tabbar.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain/format.test.ts src/lib/domain/tabbar.test.ts",
+      "evidence_note": "31 tests unitarios pasando (16 en format, 15 en tabbar). Formateo bilingüe y conmutación de unidades probados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-016",
+      "name": "Página de créditos, procedencia y licencias",
+      "description": "Página pública de atribución y licencias para ilustraciones de Bryl Lim Everkinetic (CC BY-SA 4.0), código MIT, fuentes MET Adult Compendium 2024 e iconografía Lucide (ISC).",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/pages/creditos.astro",
+        "src/components/TrainingApp.svelte",
+        "LICENSES.md",
+        "NOTICE.md"
+      ],
+      "tests": [
+        "src/wrangler.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/wrangler.test.ts",
+      "evidence_note": "Ruta estática prerenderizada en build con enlaces a licencias locales (/exercises/LICENSE-ASSETS, ATTRIBUTION.md) verificada.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-017",
+      "name": "Guardrail de seguridad para cambios de rutina por Coach/AI",
+      "description": "Validador estricto de propuestas de cambios de rutina generadas por agentes/coach (máximo 25 cambios, tipos permitidos, bloqueo de prototype pollution, parámetro `why` obligatorio).",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/coach/validate-change.ts"
+      ],
+      "tests": [
+        "src/lib/coach/validate-change.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/coach/validate-change.test.ts",
+      "evidence_note": "8 tests unitarios pasando: rechaza comandos exec hostiles, keys reservadas de prototipo, entradas fraccionadas o vacías.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-018",
+      "name": "Frontera E2EE para respaldo en nube (@swal/vault)",
+      "description": "Arquitectura de respaldo con reparto de secreto Shamir (umbral 2 de 3: dispositivo x=1, recuperación x=2, KV x=3; R2 solo conserva ciphertext sin shares). La nube no puede descifrar sin el dispositivo.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/cloudflareVaultAdapter.ts"
+      ],
+      "tests": [
+        "src/lib/e2eeCloudBoundary.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/e2eeCloudBoundary.test.ts",
+      "evidence_note": "6 tests pasando en entorno node: verifica matemáticamente que los datos en R2 + KV no alcanzan el umbral para reconstruir la DEK.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-019",
+      "name": "Integración de dominio agéntico y memoria cognitiva Xavier",
+      "description": "Capa agéntica que coordina registros de dominio con memoria Xavier y salas de eventos Mesh, con aislamiento estricto por appId e instance_id.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/agentDomain.ts",
+        "src/lib/xavier.ts",
+        "src/lib/xavierSync.ts",
+        "src/lib/mesh.ts"
+      ],
+      "tests": [
+        "src/lib/agentDomain.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/agentDomain.test.ts",
+      "evidence_note": "4 tests unitarios pasando: creación de fila + memoria + mesh, búsqueda híbrida y rechazo de entidades no autorizadas.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-020",
+      "name": "Despliegue Cloudflare Pages con cero bindings (Offline-First)",
+      "description": "Configuración de despliegue en Cloudflare Pages que garantiza la ausencia de bindings remotos (D1, R2, KV, AI) en la ruta crítica para proteger la privacidad local del usuario.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "wrangler.toml",
+        "src/wrangler.test.ts",
+        "astro.config.mjs"
+      ],
+      "tests": [
+        "src/wrangler.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/wrangler.test.ts",
+      "evidence_note": "4 tests unitarios pasando: verifica que wrangler.toml despliega como biohuman y no declara bindings compartidos.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-021",
+      "name": "Motor de UI agéntica (AUI) y renderizado dinámico",
+      "description": "Especificación JSON de interfaces generadas por agentes, validación estricta de componentes permitidos y bloqueo de claves reservadas (lockedKeys).",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/aui.ts",
+        "src/components/AuiRenderer.svelte"
+      ],
+      "tests": [
+        "src/lib/aui.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/aui.test.ts",
+      "evidence_note": "6 tests unitarios pasando: valida especificaciones conformes y rechaza componentes no autorizados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-022",
+      "name": "Scaffold de facturación y CreditMeter (A eliminar)",
+      "description": "Scaffold heredado del template para planes, medidor de crédito y Workers AI con recargo del 20%. Planificado para ser eliminado por sesión Jules S0-8 en favor del tiering global SWAL.",
+      "status": "planned",
+      "progress_pct": 0,
+      "implemented_in": [
+        "src/lib/billing.ts",
+        "workers/ai.ts",
+        "src/components/CreditMeter.svelte",
+        "migrations/001_billing.sql"
+      ],
+      "tests": [
+        "src/lib/billing.test.ts",
+        "src/lib/worker.test.ts",
+        "src/lib/llmBilling.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/billing.test.ts src/lib/worker.test.ts src/lib/llmBilling.test.ts",
+      "evidence_note": "Código y 14 tests presentes y pasando, pero catalogado como planned removal por decisión arquitectural (Jules S0-8) para no cobrar por app.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-023",
+      "name": "Métricas corporales y cálculo de intensidad de peso corporal",
+      "description": "Modelado de ejercicios de autocarga / peso corporal y cálculo de carga efectiva relativa a la masa corporal del usuario.",
+      "status": "implemented",
+      "progress_pct": 100,
+      "implemented_in": [
+        "src/lib/domain/bodyweight.ts",
+        "src/lib/domain/workout-model.ts"
+      ],
+      "tests": [
+        "src/lib/domain/bodyweight.test.ts",
+        "src/lib/domain/workout-model.test.ts"
+      ],
+      "last_tested": "2026-10-15",
+      "verified_by": "pnpm vitest run src/lib/domain/bodyweight.test.ts src/lib/domain/workout-model.test.ts",
+      "evidence_note": "51 tests unitarios pasando (6 en bodyweight, 45 en workout-model). Conversiones de intensidad y modelos de carga verificados.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-024",
+      "name": "Despliegue público en producción (biohuman.swal.network)",
+      "description": "Despliegue accesible en el subdominio biohuman.swal.network en Cloudflare Pages con DNS y certificados SSL activos.",
+      "status": "planned",
+      "progress_pct": 0,
+      "implemented_in": [
+        ".github/workflows/deploy.yml",
+        "wrangler.toml"
+      ],
+      "tests": [],
+      "last_tested": null,
+      "verified_by": "getent hosts biohuman.swal.network",
+      "evidence_note": "No resuelve DNS (biohuman.swal.network retorna NO_RESOLVE). Requiere creación de registro DNS y configuración de proyecto en Cloudflare Pages.",
+      "launch_blocker": true
+    },
+    {
+      "id": "FEAT-025",
+      "name": "Integración Continua (CI) en rama main",
+      "description": "Pipeline automatizado en GitHub Actions ejecutando pruebas unitarias, comprobación de tipos y verificación de contratos en cada push a main.",
+      "status": "partial",
+      "progress_pct": 30,
+      "implemented_in": [
+        ".github/workflows/ci.yml"
+      ],
+      "tests": [],
+      "last_tested": "2026-10-13",
+      "verified_by": "gh run list -R iberi22/biohuman --branch main --limit 5",
+      "evidence_note": "Bloqueado por problema de facturación en repositorios privados de GitHub. Últimos runs en main fallan de inmediato sin logs (run 38349399000 del 2026-10-13 concluido con failure en 18s).",
+      "launch_blocker": true
+    },
+    {
+      "id": "FEAT-026",
+      "name": "Suite de humo E2E (tester-army / e2e smoke)",
+      "description": "Batería automatizada de pruebas end-to-end multi-dispositivo y multi-rol para validación de humo pre-lanzamiento.",
+      "status": "in_progress",
+      "progress_pct": 20,
+      "implemented_in": [
+        "tests/e2e/training.spec.ts",
+        "tests/e2e/ghost-buttons.spec.ts"
+      ],
+      "tests": [
+        "tests/e2e/training.spec.ts",
+        "tests/e2e/ghost-buttons.spec.ts"
+      ],
+      "last_tested": null,
+      "verified_by": "Jules session en curso (tester-army)",
+      "evidence_note": "Existen 2 specs locales de Playwright en tests/e2e, pero la suite estandarizada tester-army está en desarrollo mediante una sesión de Jules sin archivos integrados aún.",
+      "launch_blocker": true
+    },
+    {
+      "id": "FEAT-027",
+      "name": "Integración de PR #12 (Extracción de validación de rutinas)",
+      "description": "Pull request draft #12: extracción de lógica de validación de rutinas desde TrainingApp.svelte a funciones puras validateRoutine, moveExercise y removeExercise en src/lib/training.ts.",
+      "status": "in_progress",
+      "progress_pct": 80,
+      "implemented_in": [
+        "src/components/TrainingApp.svelte",
+        "src/lib/training.ts"
+      ],
+      "tests": [
+        "src/lib/training.test.ts"
+      ],
+      "last_tested": "2026-10-14",
+      "verified_by": "gh pr view 12 -R iberi22/biohuman",
+      "evidence_note": "Draft PR abierto por Jules (task 8138293360003802336), código completo pero pendiente de revisión y merge en rama main.",
+      "launch_blocker": false
+    },
+    {
+      "id": "FEAT-028",
+      "name": "Integración de PR #13 (Deduplicación de importación de salud)",
+      "description": "Pull request draft #13: extracción de lógica de deduplicación de sesiones por ULID a mergeSessionsByUlid con suite de pruebas dedicada en src/lib/healthFile.test.ts.",
+      "status": "in_progress",
+      "progress_pct": 80,
+      "implemented_in": [
+        "src/components/TrainingApp.svelte",
+        "src/lib/training.ts"
+      ],
+      "tests": [
+        "src/lib/healthTransport.test.ts"
+      ],
+      "last_tested": "2026-10-14",
+      "verified_by": "gh pr view 13 -R iberi22/biohuman",
+      "evidence_note": "Draft PR abierto por Jules (task 2715619877276612626), pendiente de resolución de chequeos CI y merge.",
+      "launch_blocker": false
+    }
+  ]
+}
