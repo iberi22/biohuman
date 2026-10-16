@@ -10,8 +10,7 @@ import {
   isComplete,
   ONBOARDING_NEEDS,
   ONBOARDING_STORAGE_KEY,
-  type OnboardingStorage,
-  type OnboardingState
+  type OnboardingStorage
 } from './needs'
 
 class FakeStorage implements OnboardingStorage {
@@ -128,6 +127,16 @@ describe('Onboarding Model', () => {
     storage.set(ONBOARDING_STORAGE_KEY, 'not json')
 
     const state = loadState(storage)
+    expect(state).toEqual(initialState())
+  })
+
+  it('loadState recovers when storage read throws', () => {
+    const throwingStorage: OnboardingStorage = {
+      get() { throw new DOMException('SecurityError') },
+      set() {}
+    }
+
+    const state = loadState(throwingStorage)
     expect(state).toEqual(initialState())
   })
 

@@ -3,7 +3,8 @@
  *
  * It presents five required topics in a fixed order.
  * The flow is pure and driven by capabilities. If a capability is unavailable,
- * the corresponding need is never offered.
+ * the corresponding need is never offered. Callers must pass feature settings
+ * to switch off topics for features the app does not currently ship.
  */
 
 export type OnboardingNeedId = 'no-account' | 'device-lock' | 'local-ai' | 'vault-family' | 'inventory'
@@ -36,7 +37,7 @@ export const ONBOARDING_NEEDS: readonly OnboardingNeed[] = [
   {
     id: 'vault-family',
     title: 'Familia y respaldo',
-    body: 'Sincroniza tus datos entre tus dispositivos de manera encriptada.',
+    body: 'Guarda un archivo de recuperación local para respaldar tu progreso.',
     capability: 'vault',
   },
   {
@@ -68,10 +69,10 @@ export function initialState(): OnboardingState {
 const ALL_IDS = new Set<string>(ONBOARDING_NEEDS.map(n => n.id))
 
 export function loadState(storage: OnboardingStorage): OnboardingState {
-  const data = storage.get(ONBOARDING_STORAGE_KEY)
-  if (!data) return initialState()
-
   try {
+    const data = storage.get(ONBOARDING_STORAGE_KEY)
+    if (!data) return initialState()
+
     const parsed = JSON.parse(data)
     if (!parsed || typeof parsed !== 'object' || parsed.v !== 1) {
       return initialState()
