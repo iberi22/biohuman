@@ -1,7 +1,7 @@
 import type { E2EConfig } from 'e2e';
 import { web } from '@e2e-dev/web';
 
-export default {
+const config: E2EConfig = {
   tests: ['e2e-ta/**/*.e2e.ts', '!e2e-ta/findings/**'],
   targets: [
     {
@@ -13,4 +13,17 @@ export default {
       },
     },
   ],
-} satisfies E2EConfig;
+};
+
+if (process.env.E2E_LIVE_URL) {
+  const targets = config.targets as any[];
+  targets.push({
+    name: 'live',
+    engine: web(),
+    app: {
+      url: process.env.E2E_LIVE_URL,
+    },
+  });
+}
+
+export default config;
