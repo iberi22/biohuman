@@ -15,8 +15,8 @@
     "test:watch": "vitest",
     "vendor:exercises": "node scripts/vendor-exercises.mjs",
     "test:e2e": "playwright test",
-    "e2e:ta": "E2E_TELEMETRY_DISABLED=1 e2e run",
-    "e2e:ta:live": "E2E_TELEMETRY_DISABLED=1 e2e run 'e2e-ta/**/*.e2e.ts' '!e2e-ta/local/**' '!e2e-ta/findings/**' --target live"
+    "e2e:ta": "E2E_TELEMETRY_DISABLED=1 e2e run --target local",
+    "e2e:ta:live": "E2E_TELEMETRY_DISABLED=1 e2e run e2e-ta/smoke.e2e.ts --target live --exclude-tag mutating"
   },
   "dependencies": {
     "@swal/ui": "^0.2.0",
