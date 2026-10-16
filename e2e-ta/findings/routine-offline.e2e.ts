@@ -15,6 +15,7 @@ test('creating a routine and seeing it in /rutinas works offline', async ({ app,
   await expect(screen.getByRole('heading', { name: 'Editar rutina' })).not.toBeVisible();
   await expect(screen.getByRole('heading', { name: 'Rutina de prueba' })).toBeVisible();
 
+  await browser.route('**/*', route => route.abort());
   await browser.reload();
   await expect(screen.getByRole('heading', { name: 'Rutina de prueba' })).toBeVisible();
 });
