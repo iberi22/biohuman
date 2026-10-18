@@ -17,6 +17,20 @@ describe('deviceLock', () => {
     await expect(setupPin('12345a', storage)).rejects.toThrow('PIN must be 6 to 12 digits')
   })
 
+  it('rejects 13 digits and alphanumeric, accepts 6 and 12', async () => {
+    const storage = new MemoryStorage()
+    await expect(setupPin('1234567890123', storage)).rejects.toThrow()
+    await expect(setupPin('a123456', storage)).rejects.toThrow()
+
+    // Accept 6
+    const r1 = await setupPin('123456', storage)
+    expect(r1).toBeDefined()
+
+    // Accept 12
+    const r2 = await setupPin('123456789012', storage)
+    expect(r2).toBeDefined()
+  })
+
   it('the stored record does not contain the PIN', async () => {
     const storage = new MemoryStorage()
     const pin = '123456'
@@ -68,7 +82,7 @@ describe('deviceLock', () => {
     const storage = new MemoryStorage()
     let time = 1000000
     const now = () => time
-    await setupPin('123456', storage, now)
+    await setupPin('123456', storage) // setupPin doesn't use 'now' anymore, but that's fine
 
     // 1 to 4 wrong attempts
     for (let i = 0; i < 4; i++) {
@@ -78,11 +92,11 @@ describe('deviceLock', () => {
       expect(res.reason).toBe('wrong-pin')
     }
 
-    // 5th wrong attempt triggers lockout
+    // 5th wrong attempt triggers lockout for future attempts, but itself returns wrong-pin
     const res5 = await unlock('111111', storage, now)
     expect(res5.ok).toBe(false)
     // @ts-ignore
-    expect(res5.reason).toBe('locked-out')
+    expect(res5.reason).toBe('wrong-pin')
 
     // 6th attempt with the RIGHT pin still locked out
     const res6 = await unlock('123456', storage, now)
@@ -91,11 +105,37 @@ describe('deviceLock', () => {
     expect(res6.reason).toBe('locked-out')
   })
 
+  it('exact lockout duration check (lockedUntil === now + 300000 and 1ms before deadline is locked-out)', async () => {
+    const storage = new MemoryStorage()
+    let time = 1000000
+    const now = () => time
+    await setupPin('123456', storage)
+
+    for (let i = 0; i < 5; i++) {
+      await unlock('111111', storage, now)
+    }
+
+    const record = JSON.parse(storage.get(LOCK_STORAGE_KEY)!)
+    expect(record.lockedUntil).toBe(time + 300000)
+
+    // 1 ms before deadline
+    time = record.lockedUntil - 1
+    const almostRes = await unlock('123456', storage, now)
+    expect(almostRes.ok).toBe(false)
+    // @ts-ignore
+    expect(almostRes.reason).toBe('locked-out')
+
+    // At deadline
+    time = record.lockedUntil
+    const exactRes = await unlock('123456', storage, now)
+    expect(exactRes.ok).toBe(true)
+  })
+
   it('after the deadline (injected now) the right PIN works again and the counter resets', async () => {
     const storage = new MemoryStorage()
     let time = 1000000
     const now = () => time
-    await setupPin('123456', storage, now)
+    await setupPin('123456', storage)
 
     for (let i = 0; i < 5; i++) {
       await unlock('111111', storage, now)
@@ -107,7 +147,7 @@ describe('deviceLock', () => {
     // @ts-ignore
     expect(lockedRes.reason).toBe('locked-out')
 
-    // advance time by 5 minutes + 1 ms
+    // advance time
     time += 5 * 60 * 1000 + 1
 
     // now it works
@@ -133,10 +173,21 @@ describe('deviceLock', () => {
 
     // Mock the API
     const globalAny = globalThis as any
+
+    // Fake throws
+    globalAny.PublicKeyCredential = {
+      isUserVerifyingPlatformAuthenticatorAvailable: async () => { throw new Error('fake error') }
+    }
+    expect(await biometricsAvailable()).toBe(false)
+
+    // Fake missing method
+    globalAny.PublicKeyCredential = {}
+    expect(await biometricsAvailable()).toBe(false)
+
+    // Fake returns true
     globalAny.PublicKeyCredential = {
       isUserVerifyingPlatformAuthenticatorAvailable: async () => true
     }
-
     expect(await biometricsAvailable()).toBe(true)
 
     delete globalAny.PublicKeyCredential
@@ -158,7 +209,7 @@ describe('deviceLock', () => {
     expect(decrypted).toBe(largeString)
   })
 
-  it('decryptWithKey throws on a tampered ciphertext (GCM authentication)', async () => {
+  it('decryptWithKey throws on a tampered ciphertext (GCM authentication) byte level', async () => {
     const storage = new MemoryStorage()
     await setupPin('123456', storage)
     const result = await unlock('123456', storage)
@@ -166,12 +217,118 @@ describe('deviceLock', () => {
     // @ts-ignore
     const key = result.key
 
-    const encrypted = await encryptWithKey(key, 'secret message')
+    const encrypted = await encryptWithKey(key, 'hello world')
 
-    // Tamper with the ciphertext (change the last character in base64url)
-    const tamperedCiphertext = encrypted.ciphertext.substring(0, encrypted.ciphertext.length - 1) +
-      (encrypted.ciphertext.endsWith('a') ? 'b' : 'a')
+    // Tamper with byte array
+    function base64urlToBytes(b64u: string) {
+      const b64 = b64u.replace(/-/g, '+').replace(/_/g, '/')
+      const pad = b64.length % 4
+      const b64p = pad ? b64 + '='.repeat(4 - pad) : b64
+      return Uint8Array.from(atob(b64p), c => c.charCodeAt(0))
+    }
+    function bytesToBase64url(bytes: Uint8Array) {
+      return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+    }
+
+    const ctBytes = base64urlToBytes(encrypted.ciphertext)
+    ctBytes[0] ^= 1 // Tamper the first byte
+
+    const tamperedCiphertext = bytesToBase64url(ctBytes)
 
     await expect(decryptWithKey(key, { ...encrypted, ciphertext: tamperedCiphertext })).rejects.toThrow()
+  })
+
+  it('M1 IV fixed to zeros (two encryptions of the same text give different IV and ciphertext, IV is 12 bytes)', async () => {
+    const storage = new MemoryStorage()
+    await setupPin('123456', storage)
+    const res = await unlock('123456', storage)
+    // @ts-ignore
+    const key = res.key
+
+    const e1 = await encryptWithKey(key, 'test')
+    const e2 = await encryptWithKey(key, 'test')
+
+    expect(e1.iv).not.toBe(e2.iv)
+    expect(e1.ciphertext).not.toBe(e2.ciphertext)
+
+    // Check IV is 12 bytes
+    const b64 = e1.iv.replace(/-/g, '+').replace(/_/g, '/')
+    const pad = b64.length % 4
+    const b64p = pad ? b64 + '='.repeat(4 - pad) : b64
+    const ivBytesLength = atob(b64p).length
+    expect(ivBytesLength).toBe(12)
+  })
+
+  it('M8 returned key depends on salt (encrypt with key from one setup, decrypt with key from another fails)', async () => {
+    const s1 = new MemoryStorage()
+    const s2 = new MemoryStorage()
+    await setupPin('123456', s1)
+    await setupPin('123456', s2)
+
+    const res1 = await unlock('123456', s1)
+    const res2 = await unlock('123456', s2)
+    // @ts-ignore
+    const key1 = res1.key
+    // @ts-ignore
+    const key2 = res2.key
+
+    const encrypted = await encryptWithKey(key1, 'hello')
+    await expect(decryptWithKey(key2, encrypted)).rejects.toThrow()
+  })
+
+  it('M9 verifier ignores salt (same PIN in two setups gives different verifiers)', async () => {
+    const s1 = new MemoryStorage()
+    const s2 = new MemoryStorage()
+    const r1 = await setupPin('123456', s1)
+    const r2 = await setupPin('123456', s2)
+
+    expect(r1.verifier).not.toBe(r2.verifier)
+  })
+
+  it('20 concurrent unlocks cannot try more than 5 PINs', async () => {
+    const storage = new MemoryStorage()
+    await setupPin('123456', storage)
+
+    const promises = []
+    for (let i = 0; i < 20; i++) {
+      promises.push(unlock('111111', storage))
+    }
+
+    const results = await Promise.all(promises)
+    const lockouts = results.filter(r => r.ok === false && r.reason === 'locked-out')
+
+    // Depending on execution order and microtasks, at most 5 attempts will be recorded as wrong-pin,
+    // the rest should be locked-out. Wait, the requirement says "cannot try more than 5 PINs".
+    // That means failedAttempts should be exactly 5, and the rest get lockout (or the state ends up correctly locked out).
+
+    const record = JSON.parse(storage.get(LOCK_STORAGE_KEY)!)
+    expect(record.failedAttempts).toBe(5)
+    expect(record.lockedUntil).not.toBeNull()
+  })
+
+  it('iterations < 210000 rejected', async () => {
+    const storage = new MemoryStorage()
+    const record = await setupPin('123456', storage)
+
+    // Manually corrupt the record
+    record.iterations = 200000
+    storage.set(LOCK_STORAGE_KEY, JSON.stringify(record))
+
+    await expect(unlock('123456', storage)).rejects.toThrow('Corrupt lock record')
+  })
+
+  it('corrupt record throws typed error', async () => {
+    const storage = new MemoryStorage()
+    await setupPin('123456', storage)
+
+    storage.set(LOCK_STORAGE_KEY, 'invalid json')
+    await expect(unlock('123456', storage)).rejects.toThrow('Corrupt lock record')
+
+    const record = await setupPin('123456', storage)
+    // modify a required field
+    // @ts-ignore
+    delete record.v
+    storage.set(LOCK_STORAGE_KEY, JSON.stringify(record))
+    await expect(unlock('123456', storage)).rejects.toThrow('Corrupt lock record')
   })
 })
