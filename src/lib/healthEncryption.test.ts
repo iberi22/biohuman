@@ -12,6 +12,7 @@ import {
   decodeEnvelope,
   isWithinDeepLinkLimit
 } from './healthEncryption';
+import { parseHealthFile } from './training';
 
 describe('healthEncryption', () => {
   const dummyPayload = JSON.stringify([{
@@ -30,60 +31,53 @@ describe('healthEncryption', () => {
   }]);
 
   it('1. roundtrips a small .swalhealth.json-like array', async () => {
-    const passphrase = 'test-passphrase';
-    const env = await encryptHealthExport(dummyPayload, passphrase);
-    const decrypted = await decryptHealthExport(env, passphrase);
+    const pw = 'test-pw';
+    const env = await encryptHealthExport(dummyPayload, pw);
+    const decrypted = await decryptHealthExport(env, pw);
     expect(decrypted).toBe(dummyPayload);
   });
 
   it('2. roundtrips a 100 KB payload', async () => {
     const payload = JSON.stringify({ data: 'A'.repeat(1024 * 100) });
-    const passphrase = 'strong-passphrase';
-    const env = await encryptHealthExport(payload, passphrase);
-    const decrypted = await decryptHealthExport(env, passphrase);
+    const pw = 'strong-pw';
+    const env = await encryptHealthExport(payload, pw);
+    const decrypted = await decryptHealthExport(env, pw);
     expect(decrypted).toBe(payload);
   });
 
   it('3. roundtrips an empty string', async () => {
-    const passphrase = 'pass';
-    const env = await encryptHealthExport('', passphrase);
-    const decrypted = await decryptHealthExport(env, passphrase);
+    const pw = 'pass';
+    const env = await encryptHealthExport('', pw);
+    const decrypted = await decryptHealthExport(env, pw);
     expect(decrypted).toBe('');
   });
 
-  it('4. throws wrong-passphrase / tampered on wrong passphrase and returns no plaintext', async () => {
-    const passphrase = 'correct';
-    const env = await encryptHealthExport(dummyPayload, passphrase);
+  it('4. throws wrong-passphrase on wrong passphrase and returns no plaintext', async () => {
+    const pw = 'correct';
+    const env = await encryptHealthExport(dummyPayload, pw);
 
-    await expect(decryptHealthExport(env, 'wrong')).rejects.toThrowError(
-      new HealthEnvelopeError('Decryption failed. Wrong passphrase or tampered ciphertext.', 'tampered')
-    );
+    await expect(decryptHealthExport(env, 'wrong')).rejects.toMatchObject({ code: 'wrong-passphrase' });
 
-    // Explicitly test that thrown error leaks no plaintext
     try {
       await decryptHealthExport(env, 'wrong');
     } catch (e: any) {
       expect(e.message).not.toContain('swal.health');
-      expect(e.code).toBe('tampered');
+      expect(e.code).toBe('wrong-passphrase');
     }
   });
 
-  it('5. throws tampered on tampered ciphertext', async () => {
+  it('5. throws wrong-passphrase on tampered ciphertext', async () => {
     const env = await encryptHealthExport(dummyPayload, 'pass');
-    // Modify one char of base64 ciphertext
     const char = env.ciphertext[0];
     env.ciphertext = (char === 'A' ? 'B' : 'A') + env.ciphertext.substring(1);
-    await expect(decryptHealthExport(env, 'pass')).rejects.toThrowError(
-      new HealthEnvelopeError('Decryption failed. Wrong passphrase or tampered ciphertext.', 'tampered')
-    );
+    await expect(decryptHealthExport(env, 'pass')).rejects.toMatchObject({ code: 'wrong-passphrase' });
   });
 
-  it('6. throws tampered on tampered IV', async () => {
+  it('6. throws wrong-passphrase on tampered IV', async () => {
     const env = await encryptHealthExport(dummyPayload, 'pass');
-    env.iv = env.iv.substring(0, env.iv.length - 1) + (env.iv.endsWith('A') ? 'B' : 'A');
-    await expect(decryptHealthExport(env, 'pass')).rejects.toThrowError(
-      new HealthEnvelopeError('Decryption failed. Wrong passphrase or tampered ciphertext.', 'tampered')
-    );
+    const char = env.iv[0];
+    env.iv = (char === 'A' ? 'B' : 'A') + env.iv.substring(1);
+    await expect(decryptHealthExport(env, 'pass')).rejects.toMatchObject({ code: 'wrong-passphrase' });
   });
 
   it('7. produces different salt and ciphertext for two encryptions of the same plaintext', async () => {
@@ -101,9 +95,9 @@ describe('healthEncryption', () => {
     expect(encoded).not.toContain('subj_test');
   });
 
-  it('9. enforces iterations >= 210000 and kdf === PBKDF2-SHA-256', async () => {
+  it('9. enforces iterations === 600000 and kdf === PBKDF2-SHA-256 for new exports', async () => {
     const env = await encryptHealthExport(dummyPayload, 'pass');
-    expect(env.iterations).toBeGreaterThanOrEqual(210000);
+    expect(env.iterations).toBe(600000);
     expect(env.kdf).toBe('PBKDF2-SHA-256');
   });
 
@@ -115,13 +109,10 @@ describe('healthEncryption', () => {
     expect(env.ciphertext).toMatch(regex);
   });
 
-  it('11. isHealthEnvelope rejects invalid shapes', () => {
+  it('11. isHealthEnvelope rejects invalid shapes and decoding plain array gives invalid-envelope', () => {
     expect(isHealthEnvelope([{ "schema": "swal.health" }])).toBe(false);
     expect(isHealthEnvelope(null)).toBe(false);
     expect(isHealthEnvelope({})).toBe(false);
-    expect(isHealthEnvelope({ v: 2, kdf: 'PBKDF2-SHA-256', iterations: 210000, salt: 'A', iv: 'A', ciphertext: 'A' })).toBe(false);
-
-    // missing iv
     expect(isHealthEnvelope({ v: 1, kdf: 'PBKDF2-SHA-256', iterations: 210000, salt: 'A', ciphertext: 'A' })).toBe(false);
   });
 
@@ -133,12 +124,92 @@ describe('healthEncryption', () => {
     expect(decoded).toEqual(env);
   });
 
-  it('13. isWithinDeepLinkLimit respects 8192 bytes limit', async () => {
+  it('13. isWithinDeepLinkLimit respects 8192 bytes limit including TextEncoder multi-byte logic', async () => {
     const smallEnv = encodeEnvelope(await encryptHealthExport('A', 'pass'));
     expect(isWithinDeepLinkLimit(smallEnv)).toBe(true);
 
-    const largePayload = JSON.stringify({ data: 'A'.repeat(1024 * 100) });
-    const largeEnv = encodeEnvelope(await encryptHealthExport(largePayload, 'pass'));
-    expect(isWithinDeepLinkLimit(largeEnv)).toBe(false);
+    const exactAscii = 'A'.repeat(8192);
+    expect(isWithinDeepLinkLimit(exactAscii)).toBe(true);
+    const overAscii = 'A'.repeat(8193);
+    expect(isWithinDeepLinkLimit(overAscii)).toBe(false);
+
+    const multiByte = 'ñ'.repeat(4097); // 4097 * 2 = 8194 bytes
+    expect(isWithinDeepLinkLimit(multiByte)).toBe(false);
+  });
+
+  it('M3. decrypts successfully even with non-default iterations (e.g. 300000) checking KAT', async () => {
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
+    env.iterations = 300000;
+
+    // Test that the validation logic uses the envelope's iteration count by encrypting a mock KAT
+    // Wait, let's actually make sure we encrypt using 300000 to do a full KAT.
+    // Instead, we just ensure decryptHealthExport properly passes the envelope's iteration count to the KDF
+    // by asserting it works. We can do that by creating a real envelope with 300k iterations manually.
+
+    // We can just rely on the API. Since encryptHealthExport uses 600k, we can mock one:
+    const kdfKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), { name: 'PBKDF2' }, false, ['deriveBits', 'deriveKey']);
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const aesKey = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 300000, hash: 'SHA-256' },
+      kdfKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, new TextEncoder().encode("Hello"));
+
+    const b64 = (buf: ArrayBuffer | Uint8Array) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const katEnv: any = {
+      v: 1, kdf: 'PBKDF2-SHA-256', iterations: 300000,
+      salt: b64(salt), iv: b64(iv), ciphertext: b64(ct)
+    };
+
+    const decrypted = await decryptHealthExport(katEnv, pw);
+    expect(decrypted).toBe("Hello");
+  });
+
+  it('M4. v:2 gives unsupported-version in decrypt and decode', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    (env as any).v = 2;
+    await expect(decryptHealthExport(env, 'pass')).rejects.toMatchObject({ code: 'unsupported-version' });
+    expect(() => decodeEnvelope(JSON.stringify(env))).toThrowError(
+      expect.objectContaining({ code: 'unsupported-version' })
+    );
+  });
+
+  it('M5, M9, M10. rejects invalid salt, other kdf, iterations out of range', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+
+    const invalidSalt = { ...env, salt: 'a+b' };
+    expect(isHealthEnvelope(invalidSalt)).toBe(false);
+
+    const invalidKdf = { ...env, kdf: 'PBKDF2-SHA-512' };
+    expect(isHealthEnvelope(invalidKdf)).toBe(false);
+
+    const iterText = { ...env, iterations: "600000" };
+    expect(isHealthEnvelope(iterText)).toBe(false);
+
+    const iterLow = { ...env, iterations: 200000 };
+    expect(isHealthEnvelope(iterLow)).toBe(false);
+
+    const iterHigh = { ...env, iterations: 20000000 };
+    expect(isHealthEnvelope(iterHigh)).toBe(false);
+
+    const iterNaN = { ...env, iterations: NaN };
+    expect(isHealthEnvelope(iterNaN)).toBe(false);
+  });
+
+  it('M12. decodeEnvelope("{}"), a plain array, and invalid JSON give invalid-envelope', () => {
+    expect(() => decodeEnvelope('{}')).toThrowError(expect.objectContaining({ code: 'invalid-envelope' }));
+    expect(() => decodeEnvelope('[]')).toThrowError(expect.objectContaining({ code: 'invalid-envelope' }));
+    expect(() => decodeEnvelope('invalid json')).toThrowError(expect.objectContaining({ code: 'invalid-envelope' }));
+  });
+
+  it('compatibility test: parseHealthFile throws on envelope', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    expect(() => parseHealthFile(encodeEnvelope(env))).toThrow();
+  });
+
+  it('rejects an empty passphrase in encryptHealthExport', async () => {
+    await expect(encryptHealthExport(dummyPayload, '')).rejects.toMatchObject({ code: 'invalid-envelope' });
   });
 });
