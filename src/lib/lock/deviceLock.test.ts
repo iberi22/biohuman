@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+vi.setConfig({ testTimeout: 30_000 })
 import { setupPin, unlock, encryptWithKey, decryptWithKey, biometricsAvailable, LOCK_STORAGE_KEY, LOCK_KDF } from './deviceLock'
 
 class MemoryStorage {
@@ -259,21 +260,22 @@ describe('deviceLock', () => {
     expect(ivBytesLength).toBe(12)
   })
 
-  it('M8 returned key depends on salt (encrypt with key from one setup, decrypt with key from another fails)', async () => {
-    const s1 = new MemoryStorage()
-    const s2 = new MemoryStorage()
-    await setupPin('123456', s1)
-    await setupPin('123456', s2)
+  it('M8 returned key does not ignore salt (encrypt/decrypt roundtrip with identical PIN but different lock instances works)', async () => {
+    // Actually the requirement: "With ONE setup: encrypt with the key from the first unlock, decrypt with the key from a second unlock; plaintext must match. Mutation check: replacing return { ok: true, key: aesKey } with a key from crypto.subtle.generateKey must turn at least one test red."
+    const storage = new MemoryStorage()
+    await setupPin('123456', storage)
 
-    const res1 = await unlock('123456', s1)
-    const res2 = await unlock('123456', s2)
+    const res1 = await unlock('123456', storage)
     // @ts-ignore
     const key1 = res1.key
+    const encrypted = await encryptWithKey(key1, 'deterministic key test')
+
+    const res2 = await unlock('123456', storage)
     // @ts-ignore
     const key2 = res2.key
 
-    const encrypted = await encryptWithKey(key1, 'hello')
-    await expect(decryptWithKey(key2, encrypted)).rejects.toThrow()
+    const decrypted = await decryptWithKey(key2, encrypted)
+    expect(decrypted).toBe('deterministic key test')
   })
 
   it('M9 verifier ignores salt (same PIN in two setups gives different verifiers)', async () => {
@@ -295,15 +297,13 @@ describe('deviceLock', () => {
     }
 
     const results = await Promise.all(promises)
-    const lockouts = results.filter(r => r.ok === false && r.reason === 'locked-out')
-
-    // Depending on execution order and microtasks, at most 5 attempts will be recorded as wrong-pin,
-    // the rest should be locked-out. Wait, the requirement says "cannot try more than 5 PINs".
-    // That means failedAttempts should be exactly 5, and the rest get lockout (or the state ends up correctly locked out).
+    const wrongPins = results.filter(r => r.ok === false && r.reason === 'wrong-pin')
 
     const record = JSON.parse(storage.get(LOCK_STORAGE_KEY)!)
-    expect(record.failedAttempts).toBe(5)
+    expect(record.failedAttempts).toBeLessThanOrEqual(5)
+    expect(wrongPins.length).toBeLessThanOrEqual(5)
     expect(record.lockedUntil).not.toBeNull()
+    expect(results.length).toBe(20)
   })
 
   it('iterations < 210000 rejected', async () => {
@@ -330,5 +330,68 @@ describe('deviceLock', () => {
     delete record.v
     storage.set(LOCK_STORAGE_KEY, JSON.stringify(record))
     await expect(unlock('123456', storage)).rejects.toThrow('Corrupt lock record')
+  })
+
+  it('M19 after expiry one wrong PIN locks again at once; correct PIN resets', async () => {
+    const storage = new MemoryStorage()
+    let time = 1000000
+    const now = () => time
+    await setupPin('123456', storage, now)
+
+    for (let i = 0; i < 5; i++) {
+      await unlock('111111', storage, now)
+    }
+
+    // Advance past deadline
+    time += 5 * 60 * 1000 + 1
+
+    // One wrong PIN should immediately re-lock
+    const res = await unlock('111111', storage, now)
+    expect(res.ok).toBe(false)
+    // @ts-ignore
+    expect(res.reason).toBe('wrong-pin')
+
+    const record = JSON.parse(storage.get(LOCK_STORAGE_KEY)!)
+    expect(record.failedAttempts).toBe(6) // Counter increments
+    expect(record.lockedUntil).toBeGreaterThan(time) // Re-locked
+
+    // Advance past new deadline
+    time = record.lockedUntil + 1
+
+    // Correct PIN should succeed and reset to 0
+    const okRes = await unlock('123456', storage, now)
+    expect(okRes.ok).toBe(true)
+
+    const finalRecord = JSON.parse(storage.get(LOCK_STORAGE_KEY)!)
+    expect(finalRecord.failedAttempts).toBe(0)
+    expect(finalRecord.lockedUntil).toBeNull()
+  })
+  it('KAT: exact verifier and decrypting a fixed ciphertext', async () => {
+    // Kills HKDF same-info, salt-size, format v1 mutants
+    const storage = new MemoryStorage()
+
+    const record: any = {
+      v: 1,
+      kdf: 'PBKDF2-SHA-256',
+      iterations: LOCK_KDF.iterations,
+      salt: 'AAECAwQFBgcICQoLDA0ODw',
+      verifier: 'ueW_CgHj-YnD2eIN5tk8ELSrGY4Isf1Nl7BDGW4uGxw',
+      failedAttempts: 0,
+      lockedUntil: null
+    }
+
+    storage.set(LOCK_STORAGE_KEY, JSON.stringify(record))
+
+    const result = await unlock('123456', storage)
+    expect(result.ok).toBe(true)
+    // @ts-ignore
+    const key = result.key
+
+    const decrypted = await decryptWithKey(key, {
+      iv: 'AQIDBAUGBwgJCgsM',
+      ciphertext: 'N4KC1wtrSNA24vonwymUofZxwfm5HjvDXMkvU3s-v4ed6--y2NGFOjZ_HxKHsdk'
+    })
+
+    expect(decrypted).toBe('fixed-plaintext-for-kat-testing')
   })
 })

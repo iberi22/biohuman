@@ -114,7 +114,7 @@ async function deriveHKDFSubkeys(pin: string, salt: Uint8Array, iterations: numb
   return { verifier: toBase64Url(signature), key: aesKey }
 }
 
-export async function setupPin(pin: string, storage: LockStorage): Promise<LockRecord> {
+export async function setupPin(pin: string, storage: LockStorage, _now?: () => number): Promise<LockRecord> {
   if (!/^\d{6,12}$/.test(pin)) {
     throw new Error('PIN must be 6 to 12 digits')
   }
@@ -152,11 +152,14 @@ function parseAndValidateRecord(recordStr: string): LockRecord {
     throw new Error('Corrupt lock record')
   }
 
-  if (typeof record.salt !== 'string' || fromBase64Url(record.salt).byteLength !== 16) {
-    throw new Error('Corrupt lock record')
-  }
-
-  if (typeof record.verifier !== 'string' || fromBase64Url(record.verifier).byteLength !== 32) {
+  try {
+    if (typeof record.salt !== 'string' || fromBase64Url(record.salt).byteLength !== 16) {
+      throw new Error('Corrupt lock record')
+    }
+    if (typeof record.verifier !== 'string' || fromBase64Url(record.verifier).byteLength !== 32) {
+      throw new Error('Corrupt lock record')
+    }
+  } catch (e) {
     throw new Error('Corrupt lock record')
   }
 
@@ -184,12 +187,6 @@ export async function unlock(
   // 1) Pre-derivation lockout check
   if (record.lockedUntil !== null && now() < record.lockedUntil) {
     return { ok: false, reason: 'locked-out' }
-  }
-
-  // Reset expired lockout before anything else
-  if (record.lockedUntil !== null && now() >= record.lockedUntil) {
-    record.failedAttempts = 0
-    record.lockedUntil = null
   }
 
   // 2) PRE-DERIVATION WRONG-PIN STATE INCREMENT
