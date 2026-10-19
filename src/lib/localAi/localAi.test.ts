@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
-import { detectLocalAi, needsPromptApiConsent, type LocalAiEnv } from './capabilities'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { detectLocalAi, LOCAL_AI_PROBE_TIMEOUT_MS, needsPromptApiConsent, type LocalAiEnv } from './capabilities'
 import { ruleAdvice } from './rules'
 
 describe('detectLocalAi capabilities', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
   it('detects prompt-api when available', async () => {
     const env: LocalAiEnv = {
       LanguageModel: {
@@ -212,15 +215,41 @@ describe('detectLocalAi capabilities', () => {
         availability: () => new Promise(() => {}),
       },
     }
+    let settled = false
     const promise = detectLocalAi(env, { timeoutMs: 1000 })
+    promise.then(() => {
+      settled = true
+    })
 
     await vi.advanceTimersByTimeAsync(999)
-    // The promise shouldn't be resolved yet
+    expect(settled).toBe(false)
 
     await vi.advanceTimersByTimeAsync(1)
+    expect(settled).toBe(true)
     const res = await promise
     expect(res.tier).toBe('rules')
-    vi.useRealTimers()
+  })
+
+  it('never-resolving probe with default timeout uses LOCAL_AI_PROBE_TIMEOUT_MS (3000ms)', async () => {
+    vi.useFakeTimers()
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => new Promise(() => {}),
+      },
+    }
+    let settled = false
+    const promise = detectLocalAi(env)
+    promise.then(() => {
+      settled = true
+    })
+
+    await vi.advanceTimersByTimeAsync(2999)
+    expect(settled).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(settled).toBe(true)
+    const res = await promise
+    expect(res.tier).toBe('rules')
   })
 
   it('invalid timeoutMs values fallback to default', async () => {
@@ -231,28 +260,23 @@ describe('detectLocalAi capabilities', () => {
       },
     }
 
-    // 0
-    let promise = detectLocalAi(env, { timeoutMs: 0 })
-    await vi.advanceTimersByTimeAsync(2999)
-    await vi.advanceTimersByTimeAsync(1)
-    let res = await promise
-    expect(res.tier).toBe('rules')
+    const invalidTimeouts = [0, -50, NaN, Infinity]
 
-    // negative
-    promise = detectLocalAi(env, { timeoutMs: -50 })
-    await vi.advanceTimersByTimeAsync(2999)
-    await vi.advanceTimersByTimeAsync(1)
-    res = await promise
-    expect(res.tier).toBe('rules')
+    for (const timeoutMs of invalidTimeouts) {
+      let settled = false
+      const promise = detectLocalAi(env, { timeoutMs })
+      promise.then(() => {
+        settled = true
+      })
 
-    // NaN
-    promise = detectLocalAi(env, { timeoutMs: NaN })
-    await vi.advanceTimersByTimeAsync(2999)
-    await vi.advanceTimersByTimeAsync(1)
-    res = await promise
-    expect(res.tier).toBe('rules')
+      await vi.advanceTimersByTimeAsync(2999)
+      expect(settled).toBe(false)
 
-    vi.useRealTimers()
+      await vi.advanceTimersByTimeAsync(1)
+      expect(settled).toBe(true)
+      const res = await promise
+      expect(res.tier).toBe('rules')
+    }
   })
 
   it('a slow but in-time probe resolves correctly', async () => {
@@ -310,8 +334,8 @@ describe('detectLocalAi capabilities', () => {
     expect(unhandledCount).toBe(0)
   })
 
-  it('exports a sane default LOCAL_AI_PROBE_TIMEOUT_MS', async () => {
-    const { LOCAL_AI_PROBE_TIMEOUT_MS } = await import('./capabilities')
+  it('exports a sane default LOCAL_AI_PROBE_TIMEOUT_MS', () => {
+    expect(LOCAL_AI_PROBE_TIMEOUT_MS).toBe(3000)
     expect(LOCAL_AI_PROBE_TIMEOUT_MS).toBeGreaterThanOrEqual(1000)
     expect(LOCAL_AI_PROBE_TIMEOUT_MS).toBeLessThanOrEqual(10000)
   })
@@ -325,6 +349,10 @@ describe('detectLocalAi UI hint', () => {
     expect(hint.es.length).toBeGreaterThan(0)
     expect(hint.en.length).toBeGreaterThan(0)
     expect(hint.es).not.toBe(hint.en)
+    expect(hint.es.toLowerCase()).toContain('lista')
+    expect(hint.en.toLowerCase()).toContain('ready')
+    expect(hint.es.toLowerCase()).not.toContain('descarg')
+    expect(hint.en.toLowerCase()).not.toContain('download')
   })
 
   it('prompt-api-download hint warns about the pending model download and consent', async () => {
@@ -339,18 +367,24 @@ describe('detectLocalAi UI hint', () => {
     const hint = await hintOf({ navigator: { gpu: { requestAdapter: async () => ({}) } } })
     expect(hint.es).toContain('WebGPU')
     expect(hint.en).toContain('WebGPU')
+    expect(hint.es).toBe('Se detecto WebGPU en este dispositivo.')
+    expect(hint.en).toBe('WebGPU detected on this device.')
   })
 
   it('rules fallback without a timeout mentions deterministic rules', async () => {
     const hint = await hintOf({})
     expect(hint.es.toLowerCase()).toContain('reglas deterministas')
     expect(hint.en.toLowerCase()).toContain('deterministic rules')
+    expect(hint.es).not.toContain('tardó')
+    expect(hint.en).not.toContain('timed out')
   })
 
   it('rules fallback after a timeout explicitly mentions the timeout/cancellation', async () => {
     const hint = await hintOf({ LanguageModel: { availability: () => new Promise(() => {}) } }, { timeoutMs: 20 })
     expect(hint.es.toLowerCase()).toContain('tardó demasiado')
+    expect(hint.es.toLowerCase()).toContain('dejo de esperarse')
     expect(hint.en.toLowerCase()).toContain('timed out')
+    expect(hint.en.toLowerCase()).toContain('stopped waiting')
   })
 })
 
