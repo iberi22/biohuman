@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   encryptHealthExport,
   decryptHealthExport,
@@ -8,10 +8,14 @@ import {
   decodeEnvelope,
   isWithinDeepLinkLimit,
   envelopeHints,
+  getEnvelopeHeaderAad,
+  HealthEnvelopeError,
   ENVELOPE_KDF,
   MIN_EXPORT_ITERATIONS,
   MIN_ITERATIONS,
   MAX_ITERATIONS,
+  MAX_ENVELOPE_BYTES,
+  MAX_CIPHERTEXT_BASE64_LENGTH,
   DEEP_LINK_LIMIT_BYTES
 } from './healthEncryption';
 import { parseHealthFile } from './training';
@@ -128,9 +132,10 @@ describe('healthEncryption', () => {
   it('11. isHealthEnvelope rejects invalid shapes and decoding plain array gives invalid-envelope', () => {
     expect(isHealthEnvelope([{ "schema": "swal.health" }])).toBe(false);
     expect(isHealthEnvelope(null)).toBe(false);
+    expect(isHealthEnvelope(undefined)).toBe(false);
+    expect(isHealthEnvelope(123)).toBe(false);
+    expect(isHealthEnvelope("string")).toBe(false);
     expect(isHealthEnvelope({})).toBe(false);
-    expect(isHealthEnvelope({ v: 2, kdf: 'PBKDF2-SHA-256', iterations: 600000, salt: 'A', iv: 'A', ciphertext: 'A' })).toBe(false);
-    expect(isHealthEnvelope({ v: 1, kdf: 'PBKDF2-SHA-256', iterations: 210000, salt: 'A', ciphertext: 'A' })).toBe(false);
   });
 
   it('12. encodeEnvelope/decodeEnvelope roundtrip with no newline', async () => {
@@ -166,13 +171,18 @@ describe('healthEncryption', () => {
       kdfKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
     );
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, new TextEncoder().encode("Hello"));
-
     const b64 = (buf: ArrayBuffer | Uint8Array) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     const katEnv: any = {
       v: 1, kdf: 'PBKDF2-SHA-256', iterations: 300000,
-      salt: b64(salt), iv: b64(iv), ciphertext: b64(ct)
+      salt: b64(salt), iv: b64(iv), ciphertext: ''
     };
+    const aad = getEnvelopeHeaderAad({ v: 1, kdf: 'PBKDF2-SHA-256', iterations: 300000, salt: katEnv.salt });
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: aad as unknown as BufferSource },
+      aesKey,
+      new TextEncoder().encode("Hello")
+    );
+    katEnv.ciphertext = b64(ct);
 
     const decrypted = await decryptHealthExport(katEnv, pw);
     expect(decrypted).toBe("Hello");
@@ -301,5 +311,180 @@ describe('healthEncryption', () => {
     expect(joined.toLowerCase()).toContain('aes-gcm');
     expect(joined.toLowerCase()).toContain('pbkdf2');
     expect(joined).toContain(String(DEEP_LINK_LIMIT_BYTES));
+  });
+
+  // ==========================================
+  // BLOQUEANTE 1: Tamaño límite antes de parsear/derivar
+  // ==========================================
+
+  it('B1. decodeEnvelope rejects text exceeding MAX_ENVELOPE_BYTES (limit + 1) before JSON.parse', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const validJson = encodeEnvelope(env);
+    // Valid JSON padded with spaces to limit + 1
+    const overLimitJson = validJson + ' '.repeat(MAX_ENVELOPE_BYTES + 1 - validJson.length);
+    expect(overLimitJson.length).toBe(MAX_ENVELOPE_BYTES + 1);
+
+    expect(() => decodeEnvelope(overLimitJson)).toThrow(
+      expect.objectContaining({ name: 'HealthEnvelopeError', code: 'invalid-envelope' })
+    );
+
+    const plainOver = ' '.repeat(MAX_ENVELOPE_BYTES + 1);
+    expect(() => decodeEnvelope(plainOver)).toThrow(
+      expect.objectContaining({ name: 'HealthEnvelopeError', code: 'invalid-envelope' })
+    );
+  });
+
+  it('B1. decodeEnvelope accepts text exactly at MAX_ENVELOPE_BYTES border', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const validJson = encodeEnvelope(env);
+    const exactJson = validJson + ' '.repeat(MAX_ENVELOPE_BYTES - validJson.length);
+    expect(exactJson.length).toBe(MAX_ENVELOPE_BYTES);
+
+    const decoded = decodeEnvelope(exactJson);
+    expect(decoded).toEqual(env);
+  });
+
+  it('B1. isHealthEnvelope and decryptHealthExport reject ciphertext exceeding ceil(MAX*4/3) (limit + 1) before base64 decode and KDF', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const maxCtLen = MAX_CIPHERTEXT_BASE64_LENGTH;
+    expect(maxCtLen).toBe(Math.ceil((MAX_ENVELOPE_BYTES * 4) / 3));
+
+    // limit + 1 characters
+    const overCiphertext = 'A'.repeat(maxCtLen + 1);
+    const overEnv = { ...env, ciphertext: overCiphertext };
+
+    expect(isHealthEnvelope(overEnv)).toBe(false);
+    await expect(decryptHealthExport(overEnv, 'pass')).rejects.toMatchObject({
+      name: 'HealthEnvelopeError',
+      code: 'invalid-envelope'
+    });
+  });
+
+  it('B1. isHealthEnvelope accepts ciphertext exactly at ceil(MAX*4/3) border', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const maxCtLen = MAX_CIPHERTEXT_BASE64_LENGTH;
+    const exactCiphertext = 'A'.repeat(maxCtLen);
+    const exactEnv = { ...env, ciphertext: exactCiphertext };
+
+    expect(isHealthEnvelope(exactEnv)).toBe(true);
+  });
+
+  // ==========================================
+  // BLOQUEANTE 2: Normalización NFKC de frase
+  // ==========================================
+
+  it('B2. normalizes passphrase using NFKC for NFC vs NFD equivalence', async () => {
+    const nfcPass = 'caf\u00e9'; // composed NFC (5 bytes UTF-8)
+    const nfdPass = 'cafe\u0301'; // decomposed NFD (6 bytes UTF-8)
+    expect(nfcPass).not.toBe(nfdPass);
+    expect(nfcPass.normalize('NFKC')).toBe(nfdPass.normalize('NFKC'));
+
+    const envNfc = await encryptHealthExport(dummyPayload, nfcPass);
+    const decryptedWithNfd = await decryptHealthExport(envNfc, nfdPass);
+    expect(decryptedWithNfd).toBe(dummyPayload);
+
+    const envNfd = await encryptHealthExport(dummyPayload, nfdPass);
+    const decryptedWithNfc = await decryptHealthExport(envNfd, nfcPass);
+    expect(decryptedWithNfc).toBe(dummyPayload);
+  });
+
+  it('B2. normalizes full-width passphrase to standard ASCII equivalents', async () => {
+    const fullWidth = '\uff50\uff41\uff53\uff53'; // 'ｐａｓｓ'
+    const standard = 'pass';
+    expect(fullWidth).not.toBe(standard);
+    expect(fullWidth.normalize('NFKC')).toBe(standard);
+
+    const envFull = await encryptHealthExport(dummyPayload, fullWidth);
+    const decryptedWithStd = await decryptHealthExport(envFull, standard);
+    expect(decryptedWithStd).toBe(dummyPayload);
+
+    const envStd = await encryptHealthExport(dummyPayload, standard);
+    const decryptedWithFull = await decryptHealthExport(envStd, fullWidth);
+    expect(decryptedWithFull).toBe(dummyPayload);
+  });
+
+  it('B2. rejects empty passphrase after NFKC normalization', async () => {
+    await expect(encryptHealthExport(dummyPayload, '')).rejects.toMatchObject({ code: 'invalid-envelope' });
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    await expect(decryptHealthExport(env, '')).rejects.toMatchObject({ code: 'invalid-envelope' });
+  });
+
+  // ==========================================
+  // NO BLOQUEANTES: AAD, tampering, encrypt-failed, json check
+  // ==========================================
+
+  it('NB-a. binds header metadata to ciphertext via AAD (tampered AAD fails decryption)', async () => {
+    const pw = 'pass';
+    const kdfKey = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(pw.normalize('NFKC')),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const aesKey = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 600000, hash: 'SHA-256' },
+      kdfKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const b64 = (buf: ArrayBuffer | Uint8Array) =>
+      btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    // Encrypt with mismatched AAD
+    const dummyAad = new TextEncoder().encode('other-aad');
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: dummyAad as unknown as BufferSource },
+      aesKey,
+      new TextEncoder().encode("Hello")
+    );
+    const badAadEnv: any = {
+      v: 1,
+      kdf: 'PBKDF2-SHA-256',
+      iterations: 600000,
+      salt: b64(salt),
+      iv: b64(iv),
+      ciphertext: b64(ct)
+    };
+
+    await expect(decryptHealthExport(badAadEnv, pw)).rejects.toMatchObject({ code: 'wrong-passphrase' });
+  });
+
+  it('NB-b. altering iterations or salt gives wrong-passphrase', async () => {
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
+
+    // Alter iterations to another valid number
+    const tamperedIterations = { ...env, iterations: 500000 };
+    await expect(decryptHealthExport(tamperedIterations, pw)).rejects.toMatchObject({ code: 'wrong-passphrase' });
+
+    // Alter salt to another valid 16-byte salt
+    const otherSalt = b64url(bytesOfLen(16));
+    expect(otherSalt).not.toBe(env.salt);
+    const tamperedSalt = { ...env, salt: otherSalt };
+    await expect(decryptHealthExport(tamperedSalt, pw)).rejects.toMatchObject({ code: 'wrong-passphrase' });
+  });
+
+  it('NB-c. throws encrypt-failed with HealthEnvelopeError when encryption fails', async () => {
+    const spy = vi.spyOn(crypto.subtle, 'encrypt').mockRejectedValueOnce(new Error('Subtle encryption error'));
+    let thrownError: unknown;
+    try {
+      await encryptHealthExport(dummyPayload, 'pass');
+    } catch (e) {
+      thrownError = e;
+    }
+    expect(thrownError).toBeInstanceOf(HealthEnvelopeError);
+    expect((thrownError as HealthEnvelopeError).code).toBe('encrypt-failed');
+    spy.mockRestore();
+  });
+
+  it('NB-d. rejects non-string json payloads in encryptHealthExport', async () => {
+    await expect(encryptHealthExport(undefined as any, 'pass')).rejects.toMatchObject({ code: 'invalid-envelope' });
+    await expect(encryptHealthExport(null as any, 'pass')).rejects.toMatchObject({ code: 'invalid-envelope' });
+    await expect(encryptHealthExport(12345 as any, 'pass')).rejects.toMatchObject({ code: 'invalid-envelope' });
+    await expect(encryptHealthExport({} as any, 'pass')).rejects.toMatchObject({ code: 'invalid-envelope' });
   });
 });

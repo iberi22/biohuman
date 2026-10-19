@@ -5,14 +5,24 @@
  * Security strictly depends on the strength of the chosen passphrase as the envelope
  * is safe to share via deep links, making offline brute-force attacks possible.
  *
+ * Unicode Normalization:
+ * Passphrases are canonicalized using Unicode Normalization Form KC (NFKC) before
+ * validation and PBKDF2 key derivation. This guarantees consistent cryptographic
+ * keys across platforms and keyboards regardless of Unicode representation (e.g.,
+ * NFC vs. NFD decomposed accents like 'café' vs 'café', or full-width compatibility
+ * characters like 'ｐａｓｓ' vs 'pass').
+ *
+ * Authenticated Additional Data (AAD):
+ * The header fields {v, kdf, iterations, salt} are cryptographically bound to the
+ * AES-GCM ciphertext as canonical JSON additional data. Any tampering with header
+ * metadata triggers an authentication tag mismatch and decryption failure.
+ *
  * Limitations:
  * - This does NOT protect data already saved unencrypted in IndexedDB. Encrypting
  *   IndexedDB at rest is a separate feature.
  * - This only provides confidentiality and authenticity for the serialized payload itself
  *   at the point of export/import.
  */
-
-import { encryptWithKey, decryptWithKey } from './lock/deviceLock';
 
 export const ENVELOPE_VERSION = 1;
 /**
@@ -23,6 +33,17 @@ export const MIN_EXPORT_ITERATIONS = 600000;
 export const ENVELOPE_KDF = { name: 'PBKDF2', hash: 'SHA-256', iterations: MIN_EXPORT_ITERATIONS, saltBytes: 16 } as const;
 export const ENVELOPE_CIPHER = 'AES-GCM';
 export const DEEP_LINK_LIMIT_BYTES = 8192;
+/**
+ * Maximum envelope text size (16 MiB) permitted before parsing JSON.
+ * Protects against memory exhaustion DoS when reading untrusted input.
+ */
+export const MAX_ENVELOPE_BYTES = 16 * 1024 * 1024;
+/**
+ * Maximum ciphertext base64 string length corresponding to MAX_ENVELOPE_BYTES.
+ * ceil(16 MiB * 4 / 3) = 22,369,622 characters.
+ */
+export const MAX_CIPHERTEXT_BASE64_LENGTH = Math.ceil((MAX_ENVELOPE_BYTES * 4) / 3);
+
 /** Floor accepted when READING an envelope (e.g. one written by an older/other writer). */
 export const MIN_ITERATIONS = 210000;
 /** Sensible upper bound accepted when READING, to bound the KDF cost (DoS guard). */
@@ -42,7 +63,15 @@ export interface HealthEnvelope {
 }
 
 export class HealthEnvelopeError extends Error {
-  constructor(message: string, public readonly code: 'invalid-envelope' | 'wrong-passphrase' | 'tampered' | 'unsupported-version') {
+  constructor(
+    message: string,
+    public readonly code:
+      | 'invalid-envelope'
+      | 'wrong-passphrase'
+      | 'tampered'
+      | 'unsupported-version'
+      | 'encrypt-failed'
+  ) {
     super(message);
     this.name = 'HealthEnvelopeError';
   }
@@ -60,7 +89,7 @@ function bufferToBase64Url(buffer: ArrayBuffer | Uint8Array): string {
 
 function base64UrlToBuffer(base64Url: string): Uint8Array {
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const padding = '='.repeat((4 - base64.length % 4) % 4);
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const binary = atob(base64 + padding);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -71,10 +100,31 @@ function base64UrlToBuffer(base64Url: string): Uint8Array {
 
 const encoder = new TextEncoder();
 
+/**
+ * Returns canonical byte representation of envelope header fields {v, kdf, iterations, salt}
+ * for AES-GCM authenticated additional data (AAD).
+ */
+export function getEnvelopeHeaderAad(envelope: {
+  v: number;
+  kdf: string;
+  iterations: number;
+  salt: string;
+}): Uint8Array {
+  return encoder.encode(
+    JSON.stringify({
+      v: envelope.v,
+      kdf: envelope.kdf,
+      iterations: envelope.iterations,
+      salt: envelope.salt
+    })
+  );
+}
+
 async function getDerivedKey(passphrase: string, salt: Uint8Array, iterations: number): Promise<CryptoKey> {
+  const normalized = passphrase.normalize('NFKC');
   const keyMaterial = await globalThis.crypto.subtle.importKey(
     'raw',
-    encoder.encode(passphrase),
+    encoder.encode(normalized),
     { name: 'PBKDF2' },
     false,
     ['deriveBits', 'deriveKey']
@@ -94,36 +144,64 @@ async function getDerivedKey(passphrase: string, salt: Uint8Array, iterations: n
 }
 
 export async function encryptHealthExport(json: string, passphrase: string): Promise<HealthEnvelope> {
-  if (typeof passphrase !== 'string' || passphrase === '') {
+  if (typeof json !== 'string') {
+    throw new HealthEnvelopeError('JSON payload must be a string', 'invalid-envelope');
+  }
+
+  if (typeof passphrase !== 'string') {
+    throw new HealthEnvelopeError('Passphrase must be a string', 'invalid-envelope');
+  }
+
+  const normalized = passphrase.normalize('NFKC');
+  if (normalized === '') {
     throw new HealthEnvelopeError('Passphrase cannot be empty', 'invalid-envelope');
   }
 
   const salt = globalThis.crypto.getRandomValues(new Uint8Array(ENVELOPE_KDF.saltBytes));
-  const key = await getDerivedKey(passphrase, salt, ENVELOPE_KDF.iterations);
+  const key = await getDerivedKey(normalized, salt, ENVELOPE_KDF.iterations);
 
-  let iv: string;
-  let ciphertext: string;
+  const iv = globalThis.crypto.getRandomValues(new Uint8Array(ENVELOPE_IV_BYTES));
+  const saltBase64Url = bufferToBase64Url(salt);
 
+  const aad = getEnvelopeHeaderAad({
+    v: ENVELOPE_VERSION,
+    kdf: 'PBKDF2-SHA-256',
+    iterations: ENVELOPE_KDF.iterations,
+    salt: saltBase64Url
+  });
+
+  let ciphertextBuffer: ArrayBuffer;
   try {
-    const res = await encryptWithKey(key, json);
-    iv = res.iv;
-    ciphertext = res.ciphertext;
+    ciphertextBuffer = await globalThis.crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv as unknown as BufferSource,
+        additionalData: aad as unknown as BufferSource
+      },
+      key,
+      encoder.encode(json)
+    );
   } catch (e) {
-    throw new HealthEnvelopeError('Encryption failed', 'tampered');
+    throw new HealthEnvelopeError('Encryption failed', 'encrypt-failed');
   }
 
   return {
     v: ENVELOPE_VERSION,
     kdf: 'PBKDF2-SHA-256',
     iterations: ENVELOPE_KDF.iterations,
-    salt: bufferToBase64Url(salt),
-    iv,
-    ciphertext
+    salt: saltBase64Url,
+    iv: bufferToBase64Url(iv),
+    ciphertext: bufferToBase64Url(ciphertextBuffer)
   };
 }
 
 export async function decryptHealthExport(envelope: HealthEnvelope, passphrase: string): Promise<string> {
-  if (typeof passphrase !== 'string' || passphrase === '') {
+  if (typeof passphrase !== 'string') {
+    throw new HealthEnvelopeError('Passphrase must be a string', 'invalid-envelope');
+  }
+
+  const normalized = passphrase.normalize('NFKC');
+  if (normalized === '') {
     throw new HealthEnvelopeError('Passphrase cannot be empty', 'invalid-envelope');
   }
 
@@ -136,20 +214,42 @@ export async function decryptHealthExport(envelope: HealthEnvelope, passphrase: 
   }
 
   let saltBytes: Uint8Array;
+  let ivBytes: Uint8Array;
+  let ciphertextBytes: Uint8Array;
 
   try {
     saltBytes = base64UrlToBuffer(envelope.salt);
+    ivBytes = base64UrlToBuffer(envelope.iv);
+    ciphertextBytes = base64UrlToBuffer(envelope.ciphertext);
   } catch (e) {
     throw new HealthEnvelopeError('Invalid base64url encoding', 'invalid-envelope');
   }
 
-  const key = await getDerivedKey(passphrase, saltBytes, envelope.iterations);
+  const key = await getDerivedKey(normalized, saltBytes, envelope.iterations);
 
+  const aad = getEnvelopeHeaderAad({
+    v: envelope.v,
+    kdf: envelope.kdf,
+    iterations: envelope.iterations,
+    salt: envelope.salt
+  });
+
+  let decryptedBuffer: ArrayBuffer;
   try {
-    return await decryptWithKey(key, { iv: envelope.iv, ciphertext: envelope.ciphertext });
+    decryptedBuffer = await globalThis.crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: ivBytes as unknown as BufferSource,
+        additionalData: aad as unknown as BufferSource
+      },
+      key,
+      ciphertextBytes as unknown as BufferSource
+    );
   } catch (e) {
     throw new HealthEnvelopeError('Decryption failed. Wrong passphrase or tampered ciphertext.', 'wrong-passphrase');
   }
+
+  return new TextDecoder().decode(decryptedBuffer);
 }
 
 export function isHealthEnvelope(value: unknown): value is HealthEnvelope {
@@ -160,6 +260,11 @@ export function isHealthEnvelope(value: unknown): value is HealthEnvelope {
   if (typeof env.iterations !== 'number') return false;
   if (!Number.isInteger(env.iterations) || env.iterations < MIN_ITERATIONS || env.iterations > MAX_ITERATIONS) return false;
   if (typeof env.salt !== 'string' || typeof env.iv !== 'string' || typeof env.ciphertext !== 'string') return false;
+
+  const maxCiphertextLength = Math.ceil((MAX_ENVELOPE_BYTES * 4) / 3);
+  if (env.ciphertext.length > maxCiphertextLength) {
+    return false;
+  }
 
   const base64UrlRegex = /^[A-Za-z0-9_-]+$/;
   if (!base64UrlRegex.test(env.salt) || !base64UrlRegex.test(env.iv) || !base64UrlRegex.test(env.ciphertext)) {
@@ -185,6 +290,10 @@ export function encodeEnvelope(envelope: HealthEnvelope): string {
 }
 
 export function decodeEnvelope(text: string): HealthEnvelope {
+  if (typeof text !== 'string' || text.length > MAX_ENVELOPE_BYTES) {
+    throw new HealthEnvelopeError('Envelope text exceeds maximum size limit', 'invalid-envelope');
+  }
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
