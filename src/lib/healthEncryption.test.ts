@@ -6,9 +6,23 @@ import {
   isHealthEnvelope,
   encodeEnvelope,
   decodeEnvelope,
-  isWithinDeepLinkLimit
+  isWithinDeepLinkLimit,
+  envelopeHints,
+  ENVELOPE_KDF,
+  MIN_EXPORT_ITERATIONS,
+  MIN_ITERATIONS,
+  MAX_ITERATIONS,
+  DEEP_LINK_LIMIT_BYTES
 } from './healthEncryption';
 import { parseHealthFile } from './training';
+
+const b64url = (bytes: Uint8Array): string =>
+  btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+const bytesOfLen = (n: number): Uint8Array => {
+  const a = new Uint8Array(n);
+  for (let i = 0; i < n; i++) a[i] = (i * 37 + 11) & 0xff;
+  return a;
+};
 
 describe('healthEncryption', () => {
   const dummyPayload = JSON.stringify([{
@@ -226,5 +240,66 @@ describe('healthEncryption', () => {
 
   it('rejects an empty passphrase in encryptHealthExport', async () => {
     await expect(encryptHealthExport(dummyPayload, '')).rejects.toMatchObject({ code: 'invalid-envelope' });
+  });
+
+  it('write path derives with at least MIN_EXPORT_ITERATIONS (600000) and records it', async () => {
+    expect(MIN_EXPORT_ITERATIONS).toBe(600000);
+    expect(ENVELOPE_KDF.iterations).toBe(MIN_EXPORT_ITERATIONS);
+    expect(ENVELOPE_KDF.iterations).toBeGreaterThanOrEqual(600000);
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    expect(env.iterations).toBeGreaterThanOrEqual(600000);
+    expect(env.iterations).toBe(MIN_EXPORT_ITERATIONS);
+  });
+
+  it('M5b. accepts iterations exactly at the read floor/ceiling and rejects just outside (kills boundary mutants)', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    // exactly at the floor/ceiling is accepted
+    expect(isHealthEnvelope({ ...env, iterations: MIN_ITERATIONS })).toBe(true);
+    expect(isHealthEnvelope({ ...env, iterations: MAX_ITERATIONS })).toBe(true);
+    // one below the floor / one above the ceiling is rejected
+    expect(isHealthEnvelope({ ...env, iterations: MIN_ITERATIONS - 1 })).toBe(false);
+    expect(isHealthEnvelope({ ...env, iterations: MAX_ITERATIONS + 1 })).toBe(false);
+  });
+
+  it('S1b. enforces exact salt/iv sizes and the tag-size floor, rejecting oversized fields too', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    // exact sizes accepted
+    expect(isHealthEnvelope({ ...env, salt: b64url(bytesOfLen(16)) })).toBe(true);
+    expect(isHealthEnvelope({ ...env, iv: b64url(bytesOfLen(12)) })).toBe(true);
+    expect(isHealthEnvelope({ ...env, ciphertext: b64url(bytesOfLen(16)) })).toBe(true);
+    // oversized salt/iv rejected (kills a mutant relaxing the exact-size check to a minimum)
+    expect(isHealthEnvelope({ ...env, salt: b64url(bytesOfLen(17)) })).toBe(false);
+    expect(isHealthEnvelope({ ...env, iv: b64url(bytesOfLen(13)) })).toBe(false);
+    // ciphertext shorter than the 16-byte GCM tag rejected
+    expect(isHealthEnvelope({ ...env, ciphertext: b64url(bytesOfLen(15)) })).toBe(false);
+  });
+
+  it('version: accepts a v:1 envelope and rejects a missing/absent version', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    expect(isHealthEnvelope(env)).toBe(true);
+    const noV: any = { ...env };
+    delete noV.v;
+    expect(isHealthEnvelope(noV)).toBe(false);
+  });
+
+  it('rejects an empty passphrase in decryptHealthExport', async () => {
+    const env = await encryptHealthExport(dummyPayload, 'pass');
+    await expect(decryptHealthExport(env, '')).rejects.toMatchObject({ code: 'invalid-envelope' });
+  });
+
+  it('envelopeHints are bilingual and state the security model and size limit', () => {
+    const hints = envelopeHints();
+    expect(hints.length).toBeGreaterThan(0);
+    for (const h of hints) {
+      expect(typeof h.es).toBe('string');
+      expect(typeof h.en).toBe('string');
+      expect(h.es.length).toBeGreaterThan(0);
+      expect(h.en.length).toBeGreaterThan(0);
+    }
+    const joined = hints.map((h) => `${h.es} ${h.en}`).join(' ');
+    expect(joined).toContain(MIN_EXPORT_ITERATIONS.toLocaleString('en-US'));
+    expect(joined.toLowerCase()).toContain('aes-gcm');
+    expect(joined.toLowerCase()).toContain('pbkdf2');
+    expect(joined).toContain(String(DEEP_LINK_LIMIT_BYTES));
   });
 });
