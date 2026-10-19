@@ -317,6 +317,43 @@ describe('detectLocalAi capabilities', () => {
   })
 })
 
+describe('detectLocalAi UI hint', () => {
+  const hintOf = async (env: LocalAiEnv, opts?: { timeoutMs?: number }) => (await detectLocalAi(env, opts)).hint
+
+  it('prompt-api surfaces a ready hint in both locales', async () => {
+    const hint = await hintOf({ LanguageModel: { availability: async () => 'available' } })
+    expect(hint.es.length).toBeGreaterThan(0)
+    expect(hint.en.length).toBeGreaterThan(0)
+    expect(hint.es).not.toBe(hint.en)
+  })
+
+  it('prompt-api-download hint warns about the pending model download and consent', async () => {
+    const hint = await hintOf({ LanguageModel: { availability: async () => 'downloadable' } })
+    expect(hint.es.toLowerCase()).toContain('descarg')
+    expect(hint.es.toLowerCase()).toContain('permiso')
+    expect(hint.en.toLowerCase()).toContain('download')
+    expect(hint.en.toLowerCase()).toContain('permission')
+  })
+
+  it('webgpu hint mentions WebGPU', async () => {
+    const hint = await hintOf({ navigator: { gpu: { requestAdapter: async () => ({}) } } })
+    expect(hint.es).toContain('WebGPU')
+    expect(hint.en).toContain('WebGPU')
+  })
+
+  it('rules fallback without a timeout mentions deterministic rules', async () => {
+    const hint = await hintOf({})
+    expect(hint.es.toLowerCase()).toContain('reglas deterministas')
+    expect(hint.en.toLowerCase()).toContain('deterministic rules')
+  })
+
+  it('rules fallback after a timeout explicitly mentions the timeout/cancellation', async () => {
+    const hint = await hintOf({ LanguageModel: { availability: () => new Promise(() => {}) } }, { timeoutMs: 20 })
+    expect(hint.es.toLowerCase()).toContain('tardó demasiado')
+    expect(hint.en.toLowerCase()).toContain('timed out')
+  })
+})
+
 describe('ruleAdvice deterministic rules', () => {
   it('returns empty array on malformed or empty inputs without throwing', () => {
     expect(ruleAdvice(null as any)).toEqual([])
