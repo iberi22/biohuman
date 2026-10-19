@@ -46,19 +46,19 @@ function hintFor(tier: LocalAiTier, timedOut: boolean): LocalAiHint {
     return { es: 'IA del navegador lista para usar.', en: 'Browser AI ready to use.' }
   }
   if (tier === 'prompt-api-download') {
-    // Note: Consumer UI must check needsPromptApiConsent(tier) (~line 66) before initiating model downloads.
+    // Note: Consumer UI must check needsPromptApiConsent(tier)  before initiating model downloads.
     return {
       es: 'La IA del navegador necesita descargar el modelo; se pedirá tu permiso antes de descargar.',
       en: 'Browser AI needs to download the model; you will be asked for permission first.',
     }
   }
   if (tier === 'webgpu') {
-    return { es: 'Se detecto WebGPU en este dispositivo.', en: 'WebGPU detected on this device.' }
+    return { es: 'Se detectó WebGPU en este dispositivo.', en: 'WebGPU detected on this device.' }
   }
   // rules
   return timedOut
     ? {
-        es: 'La detección de IA local tardó demasiado y dejo de esperarse; se usan reglas deterministas.',
+        es: 'La detección de IA local tardó demasiado y se dejó de esperar; se usan reglas deterministas.',
         en: 'Local AI detection timed out and stopped waiting; using deterministic rules.',
       }
     : { es: 'Sin IA local disponible; se usan reglas deterministas.', en: 'No local AI available; using deterministic rules.' }

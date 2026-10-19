@@ -367,7 +367,7 @@ describe('detectLocalAi UI hint', () => {
     const hint = await hintOf({ navigator: { gpu: { requestAdapter: async () => ({}) } } })
     expect(hint.es).toContain('WebGPU')
     expect(hint.en).toContain('WebGPU')
-    expect(hint.es).toBe('Se detecto WebGPU en este dispositivo.')
+    expect(hint.es).toBe('Se detectó WebGPU en este dispositivo.')
     expect(hint.en).toBe('WebGPU detected on this device.')
   })
 
@@ -382,7 +382,7 @@ describe('detectLocalAi UI hint', () => {
   it('rules fallback after a timeout explicitly mentions the timeout/cancellation', async () => {
     const hint = await hintOf({ LanguageModel: { availability: () => new Promise(() => {}) } }, { timeoutMs: 20 })
     expect(hint.es.toLowerCase()).toContain('tardó demasiado')
-    expect(hint.es.toLowerCase()).toContain('dejo de esperarse')
+    expect(hint.es.toLowerCase()).toContain('se dejó de esperar')
     expect(hint.en.toLowerCase()).toContain('timed out')
     expect(hint.en.toLowerCase()).toContain('stopped waiting')
   })
