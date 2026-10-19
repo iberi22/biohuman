@@ -46,19 +46,20 @@ function hintFor(tier: LocalAiTier, timedOut: boolean): LocalAiHint {
     return { es: 'IA del navegador lista para usar.', en: 'Browser AI ready to use.' }
   }
   if (tier === 'prompt-api-download') {
+    // Note: Consumer UI must check needsPromptApiConsent(tier) (~line 66) before initiating model downloads.
     return {
       es: 'La IA del navegador necesita descargar el modelo; se pedirá tu permiso antes de descargar.',
       en: 'Browser AI needs to download the model; you will be asked for permission first.',
     }
   }
   if (tier === 'webgpu') {
-    return { es: 'IA local acelerada por WebGPU.', en: 'Local AI accelerated by WebGPU.' }
+    return { es: 'Se detecto WebGPU en este dispositivo.', en: 'WebGPU detected on this device.' }
   }
   // rules
   return timedOut
     ? {
-        es: 'La detección de IA local tardó demasiado y se canceló; se usan reglas deterministas.',
-        en: 'Local AI detection timed out and was cancelled; using deterministic rules.',
+        es: 'La detección de IA local tardó demasiado y dejo de esperarse; se usan reglas deterministas.',
+        en: 'Local AI detection timed out and stopped waiting; using deterministic rules.',
       }
     : { es: 'Sin IA local disponible; se usan reglas deterministas.', en: 'No local AI available; using deterministic rules.' }
 }
@@ -102,7 +103,7 @@ export async function detectLocalAi(
   opts: { timeoutMs?: number } = {}
 ): Promise<LocalAiDetection> {
   let timeoutMs = opts.timeoutMs ?? LOCAL_AI_PROBE_TIMEOUT_MS
-  if (timeoutMs <= 0 || Number.isNaN(timeoutMs)) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     timeoutMs = LOCAL_AI_PROBE_TIMEOUT_MS
   }
   const timeoutDetails: string[] = []
