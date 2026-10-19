@@ -1,10 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
-  ENVELOPE_VERSION,
-  ENVELOPE_KDF,
-  DEEP_LINK_LIMIT_BYTES,
-  HealthEnvelopeError,
   encryptHealthExport,
   decryptHealthExport,
   isHealthEnvelope,
@@ -67,42 +63,48 @@ describe('healthEncryption', () => {
   });
 
   it('5. throws wrong-passphrase on tampered ciphertext', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     const char = env.ciphertext[0];
     env.ciphertext = (char === 'A' ? 'B' : 'A') + env.ciphertext.substring(1);
-    await expect(decryptHealthExport(env, 'pass')).rejects.toMatchObject({ code: 'wrong-passphrase' });
+    await expect(decryptHealthExport(env, pw)).rejects.toMatchObject({ code: 'wrong-passphrase' });
   });
 
   it('6. throws wrong-passphrase on tampered IV', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     const char = env.iv[0];
     env.iv = (char === 'A' ? 'B' : 'A') + env.iv.substring(1);
-    await expect(decryptHealthExport(env, 'pass')).rejects.toMatchObject({ code: 'wrong-passphrase' });
+    await expect(decryptHealthExport(env, pw)).rejects.toMatchObject({ code: 'wrong-passphrase' });
   });
 
   it('7. produces different salt and ciphertext for two encryptions of the same plaintext', async () => {
-    const env1 = await encryptHealthExport(dummyPayload, 'pass');
-    const env2 = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env1 = await encryptHealthExport(dummyPayload, pw);
+    const env2 = await encryptHealthExport(dummyPayload, pw);
     expect(env1.salt).not.toBe(env2.salt);
     expect(env1.ciphertext).not.toBe(env2.ciphertext);
     expect(env1.iv).not.toBe(env2.iv);
   });
 
   it('8. envelope JSON does not contain marker string from plaintext', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     const encoded = encodeEnvelope(env);
     expect(encoded).not.toContain('swal.health/v1/workout-session');
     expect(encoded).not.toContain('subj_test');
   });
 
   it('9. enforces iterations === 600000 and kdf === PBKDF2-SHA-256 for new exports', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     expect(env.iterations).toBe(600000);
     expect(env.kdf).toBe('PBKDF2-SHA-256');
   });
 
   it('10. all three base64 fields match ^[A-Za-z0-9_-]+$', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     const regex = /^[A-Za-z0-9_-]+$/;
     expect(env.salt).toMatch(regex);
     expect(env.iv).toMatch(regex);
@@ -113,11 +115,13 @@ describe('healthEncryption', () => {
     expect(isHealthEnvelope([{ "schema": "swal.health" }])).toBe(false);
     expect(isHealthEnvelope(null)).toBe(false);
     expect(isHealthEnvelope({})).toBe(false);
+    expect(isHealthEnvelope({ v: 2, kdf: 'PBKDF2-SHA-256', iterations: 600000, salt: 'A', iv: 'A', ciphertext: 'A' })).toBe(false);
     expect(isHealthEnvelope({ v: 1, kdf: 'PBKDF2-SHA-256', iterations: 210000, salt: 'A', ciphertext: 'A' })).toBe(false);
   });
 
   it('12. encodeEnvelope/decodeEnvelope roundtrip with no newline', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     const encoded = encodeEnvelope(env);
     expect(encoded).not.toContain('\n');
     const decoded = decodeEnvelope(encoded);
@@ -125,7 +129,8 @@ describe('healthEncryption', () => {
   });
 
   it('13. isWithinDeepLinkLimit respects 8192 bytes limit including TextEncoder multi-byte logic', async () => {
-    const smallEnv = encodeEnvelope(await encryptHealthExport('A', 'pass'));
+    const pw = 'pass';
+    const smallEnv = encodeEnvelope(await encryptHealthExport('A', pw));
     expect(isWithinDeepLinkLimit(smallEnv)).toBe(true);
 
     const exactAscii = 'A'.repeat(8192);
@@ -139,15 +144,7 @@ describe('healthEncryption', () => {
 
   it('M3. decrypts successfully even with non-default iterations (e.g. 300000) checking KAT', async () => {
     const pw = 'pass';
-    const env = await encryptHealthExport(dummyPayload, pw);
-    env.iterations = 300000;
 
-    // Test that the validation logic uses the envelope's iteration count by encrypting a mock KAT
-    // Wait, let's actually make sure we encrypt using 300000 to do a full KAT.
-    // Instead, we just ensure decryptHealthExport properly passes the envelope's iteration count to the KDF
-    // by asserting it works. We can do that by creating a real envelope with 300k iterations manually.
-
-    // We can just rely on the API. Since encryptHealthExport uses 600k, we can mock one:
     const kdfKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), { name: 'PBKDF2' }, false, ['deriveBits', 'deriveKey']);
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const aesKey = await crypto.subtle.deriveKey(
@@ -168,19 +165,22 @@ describe('healthEncryption', () => {
   });
 
   it('M4. v:2 gives unsupported-version in decrypt and decode', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     (env as any).v = 2;
-    await expect(decryptHealthExport(env, 'pass')).rejects.toMatchObject({ code: 'unsupported-version' });
-    expect(() => decodeEnvelope(JSON.stringify(env))).toThrowError(
+    await expect(decryptHealthExport(env, pw)).rejects.toMatchObject({ code: 'unsupported-version' });
+    expect(() => decodeEnvelope(JSON.stringify(env))).toThrow(
       expect.objectContaining({ code: 'unsupported-version' })
     );
   });
 
   it('M5, M9, M10. rejects invalid salt, other kdf, iterations out of range', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
 
-    const invalidSalt = { ...env, salt: 'a+b' };
-    expect(isHealthEnvelope(invalidSalt)).toBe(false);
+    // valid base64 but invalid base64url (+ or /)
+    const invalidSaltUrl = { ...env, salt: 'wB+wXo8aY9f/Q12345678w==' };
+    expect(isHealthEnvelope(invalidSaltUrl)).toBe(false);
 
     const invalidKdf = { ...env, kdf: 'PBKDF2-SHA-512' };
     expect(isHealthEnvelope(invalidKdf)).toBe(false);
@@ -198,14 +198,29 @@ describe('healthEncryption', () => {
     expect(isHealthEnvelope(iterNaN)).toBe(false);
   });
 
+  it('S1. rejects sizes that are too small (1 byte salt, 8 bytes IV, 4 bytes ciphertext)', async () => {
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
+
+    const smallSalt = { ...env, salt: 'QQ' }; // 1 byte
+    expect(isHealthEnvelope(smallSalt)).toBe(false);
+
+    const smallIv = { ...env, iv: 'AAAAAAAAAAA' }; // 8 bytes
+    expect(isHealthEnvelope(smallIv)).toBe(false);
+
+    const smallCt = { ...env, ciphertext: 'AAAAAA' }; // 4 bytes
+    expect(isHealthEnvelope(smallCt)).toBe(false);
+  });
+
   it('M12. decodeEnvelope("{}"), a plain array, and invalid JSON give invalid-envelope', () => {
-    expect(() => decodeEnvelope('{}')).toThrowError(expect.objectContaining({ code: 'invalid-envelope' }));
-    expect(() => decodeEnvelope('[]')).toThrowError(expect.objectContaining({ code: 'invalid-envelope' }));
-    expect(() => decodeEnvelope('invalid json')).toThrowError(expect.objectContaining({ code: 'invalid-envelope' }));
+    expect(() => decodeEnvelope('{}')).toThrow(expect.objectContaining({ code: 'invalid-envelope' }));
+    expect(() => decodeEnvelope('[]')).toThrow(expect.objectContaining({ code: 'invalid-envelope' }));
+    expect(() => decodeEnvelope('invalid json')).toThrow(expect.objectContaining({ code: 'invalid-envelope' }));
   });
 
   it('compatibility test: parseHealthFile throws on envelope', async () => {
-    const env = await encryptHealthExport(dummyPayload, 'pass');
+    const pw = 'pass';
+    const env = await encryptHealthExport(dummyPayload, pw);
     expect(() => parseHealthFile(encodeEnvelope(env))).toThrow();
   });
 
