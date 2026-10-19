@@ -123,6 +123,108 @@ describe('detectLocalAi capabilities', () => {
     const res = await detectLocalAi(env)
     expect(res.tier).toBe('rules')
   })
+
+  it('availability never settles and no GPU falls back to rules with timeout message', async () => {
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => new Promise(() => {}),
+      },
+    }
+    const res = await detectLocalAi(env, { timeoutMs: 20 })
+    expect(res.tier).toBe('rules')
+    expect(res.detail).toContain('timed out')
+    expect(res.detail).toContain('LanguageModel.availability')
+  })
+
+  it('availability never settles but requestAdapter returns adapter falls back to webgpu', async () => {
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => new Promise(() => {}),
+      },
+      navigator: {
+        gpu: {
+          requestAdapter: async () => ({ isAdapter: true }),
+        },
+      },
+    }
+    const res = await detectLocalAi(env, { timeoutMs: 20 })
+    expect(res.tier).toBe('webgpu')
+  })
+
+  it('requestAdapter never settles falls back to rules with timeout message', async () => {
+    const env: LocalAiEnv = {
+      navigator: {
+        gpu: {
+          requestAdapter: () => new Promise(() => {}),
+        },
+      },
+    }
+    const res = await detectLocalAi(env, { timeoutMs: 20 })
+    expect(res.tier).toBe('rules')
+    expect(res.detail).toContain('timed out')
+    expect(res.detail).toContain('navigator.gpu.requestAdapter')
+  })
+
+  it('a slow but in-time probe resolves correctly', async () => {
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () =>
+          new Promise((resolve) => setTimeout(() => resolve('available'), 5)),
+      },
+    }
+    const res = await detectLocalAi(env, { timeoutMs: 20 })
+    expect(res.tier).toBe('prompt-api')
+  })
+
+  it('a probe that rejects after the timeout fired causes no unhandled rejection', async () => {
+    let rejectLate: (err: Error) => void
+    const latePromise = new Promise<string>((_, reject) => {
+      rejectLate = reject
+    })
+
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => latePromise,
+      },
+    }
+
+    let unhandledCount = 0
+    const onUnhandled = () => {
+      unhandledCount++
+    }
+
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.on) {
+      // @ts-ignore
+      process.on('unhandledRejection', onUnhandled)
+    } else {
+      window.addEventListener('unhandledrejection', onUnhandled)
+    }
+
+    const res = await detectLocalAi(env, { timeoutMs: 20 })
+    expect(res.tier).toBe('rules')
+
+    // Reject late after timeout has resolved
+    rejectLate!(new Error('late rejection'))
+
+    // Wait a little bit for microtasks
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.removeListener) {
+      // @ts-ignore
+      process.removeListener('unhandledRejection', onUnhandled)
+    } else {
+      window.removeEventListener('unhandledrejection', onUnhandled)
+    }
+    expect(unhandledCount).toBe(0)
+  })
+
+  it('exports a sane default LOCAL_AI_PROBE_TIMEOUT_MS', async () => {
+    const { LOCAL_AI_PROBE_TIMEOUT_MS } = await import('./capabilities')
+    expect(LOCAL_AI_PROBE_TIMEOUT_MS).toBeGreaterThanOrEqual(1000)
+    expect(LOCAL_AI_PROBE_TIMEOUT_MS).toBeLessThanOrEqual(10000)
+  })
 })
 
 describe('ruleAdvice deterministic rules', () => {
