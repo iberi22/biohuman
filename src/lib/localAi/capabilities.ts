@@ -40,18 +40,21 @@ class TimeoutError extends Error {
   }
 }
 
-function raceProbe<T>(probe: Promise<T>, timeoutMs: number, probeName: string): Promise<T> {
+async function raceProbe<T>(probe: Promise<T> | T, timeoutMs: number, probeName: string): Promise<T> {
+  const p = Promise.resolve(probe)
   let timerId: ReturnType<typeof setTimeout> | undefined
   const timeoutPromise = new Promise<T>((_, reject) => {
     timerId = setTimeout(() => reject(new TimeoutError(probeName)), timeoutMs)
   })
 
   // Prevent late rejections from crashing the process
-  probe.catch(() => {})
+  p.catch(() => {})
 
-  return Promise.race([probe, timeoutPromise]).finally(() => {
+  try {
+    return await Promise.race([p, timeoutPromise])
+  } finally {
     if (timerId) clearTimeout(timerId)
-  })
+  }
 }
 
 /**
@@ -62,8 +65,11 @@ export async function detectLocalAi(
   env: LocalAiEnv = globalThis as unknown as LocalAiEnv,
   opts: { timeoutMs?: number } = {}
 ): Promise<{ tier: LocalAiTier; detail: string }> {
-  const timeoutMs = opts.timeoutMs ?? LOCAL_AI_PROBE_TIMEOUT_MS
-  let timeoutDetail = ''
+  let timeoutMs = opts.timeoutMs ?? LOCAL_AI_PROBE_TIMEOUT_MS
+  if (timeoutMs <= 0 || Number.isNaN(timeoutMs)) {
+    timeoutMs = LOCAL_AI_PROBE_TIMEOUT_MS
+  }
+  const timeoutDetails: string[] = []
 
   try {
     if (env.LanguageModel?.availability) {
@@ -77,7 +83,7 @@ export async function detectLocalAi(
     }
   } catch (err) {
     if (err instanceof TimeoutError) {
-      timeoutDetail = err.message
+      timeoutDetails.push(err.message)
     }
     // Fallthrough to next capability
   }
@@ -91,13 +97,13 @@ export async function detectLocalAi(
     }
   } catch (err) {
     if (err instanceof TimeoutError) {
-      timeoutDetail = err.message
+      timeoutDetails.push(err.message)
     }
     // Fallthrough to rules
   }
 
-  const detail = timeoutDetail
-    ? `Fallback to deterministic rules (${timeoutDetail})`
+  const detail = timeoutDetails.length > 0
+    ? `Fallback to deterministic rules (${timeoutDetails.join(', ')})`
     : 'Fallback to deterministic rules'
   return { tier: 'rules', detail }
 }

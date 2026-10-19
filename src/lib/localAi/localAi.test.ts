@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { detectLocalAi, needsPromptApiConsent, type LocalAiEnv } from './capabilities'
 import { ruleAdvice } from './rules'
 
@@ -163,6 +163,96 @@ describe('detectLocalAi capabilities', () => {
     expect(res.tier).toBe('rules')
     expect(res.detail).toContain('timed out')
     expect(res.detail).toContain('navigator.gpu.requestAdapter')
+  })
+
+  it('both probes time out includes both names in detail', async () => {
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => new Promise(() => {}),
+      },
+      navigator: {
+        gpu: {
+          requestAdapter: () => new Promise(() => {}),
+        },
+      },
+    }
+    const res = await detectLocalAi(env, { timeoutMs: 20 })
+    expect(res.tier).toBe('rules')
+    expect(res.detail).toContain('LanguageModel.availability')
+    expect(res.detail).toContain('navigator.gpu.requestAdapter')
+  })
+
+  it('handles sync return values from probes without unhandled rejections', async () => {
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        // @ts-ignore testing invalid sync return
+        availability: () => 'available',
+      },
+    }
+    const res = await detectLocalAi(env, { timeoutMs: 20 })
+    expect(res.tier).toBe('prompt-api')
+  })
+
+  it('timer is cleaned up after a fast probe', async () => {
+    vi.useFakeTimers()
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => Promise.resolve('available'),
+      },
+    }
+    await detectLocalAi(env, { timeoutMs: 1000 })
+    expect(vi.getTimerCount()).toBe(0)
+    vi.useRealTimers()
+  })
+
+  it('never-resolving probe times out correctly with fake timers', async () => {
+    vi.useFakeTimers()
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => new Promise(() => {}),
+      },
+    }
+    const promise = detectLocalAi(env, { timeoutMs: 1000 })
+
+    await vi.advanceTimersByTimeAsync(999)
+    // The promise shouldn't be resolved yet
+
+    await vi.advanceTimersByTimeAsync(1)
+    const res = await promise
+    expect(res.tier).toBe('rules')
+    vi.useRealTimers()
+  })
+
+  it('invalid timeoutMs values fallback to default', async () => {
+    vi.useFakeTimers()
+    const env: LocalAiEnv = {
+      LanguageModel: {
+        availability: () => new Promise(() => {}),
+      },
+    }
+
+    // 0
+    let promise = detectLocalAi(env, { timeoutMs: 0 })
+    await vi.advanceTimersByTimeAsync(2999)
+    await vi.advanceTimersByTimeAsync(1)
+    let res = await promise
+    expect(res.tier).toBe('rules')
+
+    // negative
+    promise = detectLocalAi(env, { timeoutMs: -50 })
+    await vi.advanceTimersByTimeAsync(2999)
+    await vi.advanceTimersByTimeAsync(1)
+    res = await promise
+    expect(res.tier).toBe('rules')
+
+    // NaN
+    promise = detectLocalAi(env, { timeoutMs: NaN })
+    await vi.advanceTimersByTimeAsync(2999)
+    await vi.advanceTimersByTimeAsync(1)
+    res = await promise
+    expect(res.tier).toBe('rules')
+
+    vi.useRealTimers()
   })
 
   it('a slow but in-time probe resolves correctly', async () => {
