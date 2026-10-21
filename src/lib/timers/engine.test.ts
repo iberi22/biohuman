@@ -68,13 +68,28 @@ describe('engine', () => {
 
   it('pause freezes time and resume continues', () => {
     let r = start(emom(1), 0);
-    const p = pause(tick(r.state, 20000).state, 20000);
+    const p = pause(tick(r.state, 20000).state, 20000).state;
     expect(tick(p, 500000).events).toEqual([]);
     expect(snapshot(p, 500000).elapsedMs).toBe(20000);
     const s = resume(p, 500000);
     expect(snapshot(s, 510000).elapsedMs).toBe(30000);
     const f = tick(s, 540000);
     expect(f.state.status).toBe('finished');
+  });
+
+  it('pause returns events crossed since the last tick', () => {
+    const r = start(emom(1), 0);
+    const p = pause(r.state, 57500);
+    expect(p.state.status).toBe('paused');
+    expect(p.events.map((e) => e.type)).toEqual(['countdown']);
+    expect(pause(tick(r.state, 59000).state, 60000).events.map((e) => e.type)).toEqual(['round-done', 'finish']);
+  });
+
+  it('rejects fractional rounds and minutes', () => {
+    expect(() => emom(2.5)).toThrow(/integer/);
+    expect(() => customIntervals(2.5, 20, 10)).toThrow(/integer/);
+    expect(() => tabata(1.5)).toThrow(/integer/);
+    expect(amrap(2.5).segments[0].durationMs).toBe(150000);
   });
 
   it('snapshot reports segment, remaining and round', () => {

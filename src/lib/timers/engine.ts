@@ -54,8 +54,13 @@ function positive(n: number, name: string): void {
   if (!Number.isFinite(n) || n <= 0) throw new Error(`${name} must be > 0`);
 }
 
+function integer(n: number, name: string): void {
+  if (!Number.isInteger(n)) throw new Error(`${name} must be an integer`);
+}
+
 export function customIntervals(rounds: number, workSec: number, restSec: number): TimerPlan {
   positive(rounds, 'rounds');
+  integer(rounds, 'rounds');
   positive(workSec, 'workSec');
   if (!Number.isFinite(restSec) || restSec < 0) throw new Error('restSec must be >= 0');
   const segments: Segment[] = [];
@@ -68,6 +73,7 @@ export function customIntervals(rounds: number, workSec: number, restSec: number
 
 export function emom(minutes: number): TimerPlan {
   positive(minutes, 'minutes');
+  integer(minutes, 'minutes');
   const segments: Segment[] = [];
   for (let r = 1; r <= minutes; r++) segments.push({ type: 'work', durationMs: MIN, round: r });
   return { kind: 'emom', segments, openEnded: false };
@@ -143,11 +149,12 @@ export function tick(state: TimerState, nowMs: number): TimerResult {
   return { state: next, events };
 }
 
-export function pause(state: TimerState, nowMs: number): TimerState {
-  if (state.status !== 'running') return state;
-  const r = tick(state, nowMs).state;
-  if (r.status !== 'running') return r;
-  return { ...r, status: 'paused', runningSinceMs: null, accumulatedMs: elapsedAt(state, nowMs) };
+/** Pauses at `nowMs`; `events` are those crossed since the last tick (caller must emit them). */
+export function pause(state: TimerState, nowMs: number): TimerResult {
+  if (state.status !== 'running') return { state, events: [] };
+  const { state: r, events } = tick(state, nowMs);
+  if (r.status !== 'running') return { state: r, events };
+  return { state: { ...r, status: 'paused', runningSinceMs: null, accumulatedMs: elapsedAt(state, nowMs) }, events };
 }
 
 export function resume(state: TimerState, nowMs: number): TimerState {
