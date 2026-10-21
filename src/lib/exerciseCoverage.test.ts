@@ -1,6 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 interface CatalogueEntry {
@@ -10,11 +7,18 @@ interface CatalogueEntry {
   muscleGroup?: unknown;
 }
 
-const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, '..', '..');
-const catalogue = JSON.parse(
-  readFileSync(resolve(repoRoot, 'src/data/exercises.json'), 'utf8'),
-) as CatalogueEntry[];
+const CATALOGUE_KEY = '../data/exercises.json';
+const catalogueModules = import.meta.glob('../data/exercises.json', {
+  eager: true,
+  import: 'default',
+}) as Record<string, CatalogueEntry[]>;
+const catalogue = catalogueModules[CATALOGUE_KEY] ?? [];
+
+const frameModules = import.meta.glob('../../public/exercises/*/frame-*.svg', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
 
 const EXPECTED_EXERCISE_COUNT = 302;
 const FRAME_FILES = [1, 2, 3].map((n) => `frame-${n}.svg`);
@@ -50,7 +54,7 @@ describe('exercise catalogue coverage', () => {
   it('ships frame-1..3 SVG illustrations for every slug', () => {
     const missing = catalogue.flatMap((entry) =>
       FRAME_FILES.map((file) => `${entry.slug}/${file}`).filter(
-        (rel) => !existsSync(resolve(repoRoot, 'public/exercises', rel)),
+        (rel) => !(`../../public/exercises/${rel}` in frameModules),
       ),
     );
     expect(missing).toEqual([]);
