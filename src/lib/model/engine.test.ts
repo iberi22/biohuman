@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromEngineEntry, fromEngineRoutine, fromEngineSet, fromEngineWorkout, toEngineEntry, toEngineHistory, toEngineRoutine, toEngineSet, toEngineWorkout } from './engine';
 import type { LoggedSet, RoutineV2, TrainingSession } from './types';
+import { registerCustom } from './catalogue';
 import { liftRoutine } from './lift';
 import { starterRoutines } from '../training';
 
@@ -52,5 +53,23 @@ describe('model/engine', () => {
     expect(fromEngineWorkout(w, s)).toEqual(s);
     expect(fromEngineEntry(toEngineEntry(s.blocks[0]))).toEqual(s.blocks[0]);
     expect(toEngineHistory([s], []).unit).toBe('kg');
+  });
+  it('custom ref round-trips as custom:<id> and keeps mode', () => {
+    registerCustom([{ slug: 'ABC', name: 'Mi', bodyPart: 'core', equipment: 'None', primaryMuscle: 'Abs', secondaryMuscles: [], steps: [], artRef: null, exerciseType: 'duration' }]);
+    try {
+      const b = { ref: 'custom:ABC' as const, mode: 'time' as const, sets: [{ phase: 'work' as const, done: true, durationS: 30 }] };
+      expect(fromEngineEntry(toEngineEntry(b)).ref).toBe('custom:ABC');
+      const e = toEngineEntry(b); delete e.ref;
+      expect(fromEngineEntry(e).ref).toBe('custom:ABC');
+      const item = { ref: 'custom:ABC' as const, sets: 1, reps: 0, weightKg: 0, durationS: 30, distanceM: 0, restS: 0 };
+      expect(fromEngineRoutine(toEngineRoutine({ v: 2, id: 'r', name: 'n', items: [item], updatedAt: 'u' }), 'u').items[0].ref).toBe('custom:ABC');
+    } finally { registerCustom([]); }
+  });
+  it('keeps protocol, planned, unknown, hrAvg and at through the engine', () => {
+    const planned = { ref: 'wg:bench-press' as const, sets: 3, reps: 5, weightKg: 50, durationS: 0, distanceM: 0, restS: 60 };
+    const protocol = { kind: 'emom' as const, workS: 40, restS: 20, rounds: 5, capS: 300, roundsDone: 2 };
+    const s: TrainingSession = { v: 2, id: 'i', subject: 's', startedAt: '2026-03-04T10:00:00Z', endedAt: '2026-03-04T11:00:00Z', createdAt: 'c', updatedAt: 'c',
+      blocks: [{ ref: 'wg:bench-press', mode: 'reps', planned, protocol, unknown: true, sets: [{ phase: 'work', done: true, reps: 5, weightKg: 50, hrAvg: 140, at: 1700000000 }] }] };
+    expect(fromEngineWorkout(toEngineWorkout(s), s)).toEqual(s);
   });
 });
