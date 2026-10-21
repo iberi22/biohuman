@@ -3,6 +3,10 @@ import svelte from '@astrojs/svelte';
 import cloudflare from '@astrojs/cloudflare';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Exercise art cache limit. Frame count is 906; 1200 leaves headroom for new
+// frames so the CacheFirst entries are not evicted as the catalogue grows.
+const EXERCISE_ART_MAX_ENTRIES = 1200;
+
 const pwaPlugins = VitePWA({
   registerType: 'autoUpdate',
   outDir: 'dist/client',
@@ -18,7 +22,7 @@ const pwaPlugins = VitePWA({
     runtimeCaching: [{
       urlPattern: /\/exercises\/.*\.svg$/,
       handler: 'CacheFirst',
-      options: { cacheName: 'training-art-v1', expiration: { maxEntries: 906 } },
+      options: { cacheName: 'training-art-v1', expiration: { maxEntries: EXERCISE_ART_MAX_ENTRIES } },
     }],
   },
 });
