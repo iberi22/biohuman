@@ -1,4 +1,4 @@
-import { openBio } from './store/db';
+import { openDB } from 'idb';
 import type { DomainRecord, StorageAdapter } from './domain';
 import { setStorageAdapter } from './domain';
 // IndexedDB stores with structured clone, which rejects Proxies (Svelte $state) with a
@@ -17,7 +17,7 @@ export function ensureCloneable<T>(val: T): T {
 
 // Reuses the template CRUD boundary; health records never use its remote adapters.
 export async function initializeLocalStorage() {
-  const db=await openBio();
+  const db=await openDB('biohuman-v1',1,{upgrade(db){db.createObjectStore('records',{keyPath:['entity','id']});}});
   const adapter:StorageAdapter={
     async create(entity,record){const safe=ensureCloneable(record);await db.put('records',{...safe,entity});return safe;},
     async list(entity,instanceId){return (await db.getAll('records')).filter(r=>r.entity===entity&&r.instance_id===instanceId);},
