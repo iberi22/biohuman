@@ -90,3 +90,9 @@ export async function orionDeepLink(records:Workout[]):Promise<string> {
 }
 export const kgToDisplay=(kg:number,units:'kg'|'lb')=>units==='lb'?kg*2.2046226218:kg;
 export const displayToKg=(weight:number,units:'kg'|'lb')=>units==='lb'?weight/2.2046226218:weight;
+
+export function mergeSessionsByUlid(existing: Workout[], imported: Workout[]): Workout[] {
+  const map = new Map(existing.map(s => [s.id, s]));
+  imported.forEach(w => map.set(w.id, w));
+  return [...map.values()].sort((a, b) => b.data.startedAt.localeCompare(a.data.startedAt));
+}
