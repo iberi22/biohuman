@@ -56,3 +56,6 @@ jobs:
       # http.server --directory dist/client`, so the build above must run first.
       - name: E2E (Playwright, chromium)
         run: pnpm run test:e2e
+
+      - name: E2E Smoke (tester-army)
+        run: pnpm run e2e:ta

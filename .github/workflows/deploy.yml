@@ -75,7 +75,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.127.1"
+          wranglerVersion: "4.154.0"
           command: deploy --config dist/server/wrangler.json
 
   # Fase 4: Smoke against the deployed worker (replaces scripts/deploy-smoke.sh,
