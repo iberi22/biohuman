@@ -1,6 +1,12 @@
 # BioHuman
 
+[![CI](https://github.com/iberi22/biohuman/actions/workflows/ci.yml/badge.svg)](https://github.com/iberi22/biohuman/actions/workflows/ci.yml)
+
 PWA de entrenamiento local-first del ecosistema de salud SWAL. Astro 7 + Svelte 5 + @swal/ui (Bone Warm Minimalist), desplegable en Cloudflare. Rutinas, sesiones, perfil dietario consentido y ajustes permanecen en IndexedDB; no se envían al backend.
+
+## Security
+
+Please refer to our [Security Policy](SECURITY.md) for information on supported versions and how to report vulnerabilities.
 
 ## Desarrollo
 
