@@ -1,4 +1,4 @@
-name: ci
+name: CI
 
 # Guards THIS repository (biohuman), not the app template: every PR and every
 # push to main runs the same gates that were verified locally — install from the
