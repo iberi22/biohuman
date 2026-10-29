@@ -6,6 +6,7 @@
   "type": "module",
   "description": "Entrenamiento local-first del ecosistema de salud SWAL",
   "scripts": {
+    "lint": "biome check .",
     "dev": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
@@ -31,6 +32,7 @@
     "@astrojs/check": "^0.9.12",
     "@astrojs/cloudflare": "^14.4.2",
     "@astrojs/svelte": "^9.1.1",
+    "@biomejs/biome": "^2.6.4",
     "@e2e-dev/web": "0.14.0",
     "@playwright/test": "1.63.0",
     "ajv": "8.20.0",

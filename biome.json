@@ -1,0 +1,60 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": { "noSvgWithoutTitle": "off" },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noDuplicateObjectKeys": "off",
+        "noAssignInExpressions": "off",
+        "noConsole": "off",
+        "noDoubleEquals": "off",
+        "noArrayIndexKey": "off",
+        "useIterableCallbackReturn": "off",
+        "noTsIgnore": "off",
+        "noGlobalIsFinite": "off",
+        "noEmptyBlockStatements": "off",
+        "noControlCharactersInRegex": "off",
+        "noImplicitAnyLet": "off",
+        "noEmptyInterface": "off",
+        "noShadowRestrictedNames": "off"
+      },
+      "correctness": {
+        "noUnusedImports": "off",
+        "noUnusedVariables": "off",
+        "noUnsafeOptionalChaining": "off",
+        "noEmptyPattern": "off"
+      },
+      "complexity": {
+        "useOptionalChain": "off",
+        "noUselessTypeConstraint": "off",
+        "useLiteralKeys": "off"
+      },
+      "style": {
+        "useNodejsImportProtocol": "off",
+        "noNonNullAssertion": "off",
+        "useConst": "off",
+        "useTemplate": "off",
+        "noUselessElse": "off",
+        "noParameterAssign": "off",
+        "useNumberNamespace": "off",
+        "useExponentiationOperator": "off"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  },
+  "files": {
+    "ignoreUnknown": true
+  }
+}

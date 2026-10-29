@@ -18,12 +18,24 @@ const READ_ONLY = { tags: ['read-only'] } as const;
  */
 const EXERCISE_PATH = '/biblioteca/bench-press/';
 
-test('home opens with its main heading', READ_ONLY, async ({ app, screen }) => {
+test('home opens with its main heading', READ_ONLY, async ({ app, screen, platform }) => {
+  let logPromise = null;
+  if (platform && typeof platform.logs === 'function') logPromise = platform.logs('browser');
+
   await app.open('/');
   await expect(screen.getByRole('heading', { name: 'Movimiento, a tu ritmo.' })).toBeVisible();
+
+  if (logPromise) {
+    const logs = (await logPromise).filter(l => l.level === 'error' || l.level === 'warning');
+    const errors = logs.filter(l => l.level === 'error').map(l => l.text);
+    expect(errors).toEqual([]);
+  }
 });
 
-test('each page of the main navigation opens', READ_ONLY, async ({ app, browser, screen }) => {
+test('each page of the main navigation opens', READ_ONLY, async ({ app, browser, screen, platform }) => {
+  let logPromise = null;
+  if (platform && typeof platform.logs === 'function') logPromise = platform.logs('browser');
+
   const routes = ['/entrenar/', '/rutinas/', '/historial/', '/ajustes/'];
   await app.open('/');
   for (const route of routes) {
@@ -40,15 +52,39 @@ test('each page of the main navigation opens', READ_ONLY, async ({ app, browser,
   expect(res.status).toBe(200);
   await expect(browser).toHaveURL(new RegExp(EXERCISE_PATH + '$'));
   await expect(screen.getByRole('heading', { name: 'Press de banca' })).toBeVisible();
+
+  if (logPromise) {
+    const logs = (await logPromise).filter(l => l.level === 'error' || l.level === 'warning');
+    const errors = logs.filter(l => l.level === 'error').map(l => l.text);
+    expect(errors).toEqual([]);
+  }
 });
 
-test('the train page offers a read-only path to routines', READ_ONLY, async ({ app, screen }) => {
+test('the train page offers a read-only path to routines', READ_ONLY, async ({ app, screen, platform }) => {
+  let logPromise = null;
+  if (platform && typeof platform.logs === 'function') logPromise = platform.logs('browser');
+
   await app.open('/entrenar');
   await expect(screen.getByRole('heading', { name: 'Elige tu próxima sesión' })).toBeVisible();
   await expect(screen.getByRole('link', { name: 'Ver rutinas →' })).toBeVisible();
+
+  if (logPromise) {
+    const logs = (await logPromise).filter(l => l.level === 'error' || l.level === 'warning');
+    const errors = logs.filter(l => l.level === 'error').map(l => l.text);
+    expect(errors).toEqual([]);
+  }
 });
 
-test('settings page renders', READ_ONLY, async ({ app, screen }) => {
+test('settings page renders', READ_ONLY, async ({ app, screen, platform }) => {
+  let logPromise = null;
+  if (platform && typeof platform.logs === 'function') logPromise = platform.logs('browser');
+
   await app.open('/ajustes');
   await expect(screen.getByLabel('Tema')).toBeVisible();
+
+  if (logPromise) {
+    const logs = (await logPromise).filter(l => l.level === 'error' || l.level === 'warning');
+    const errors = logs.filter(l => l.level === 'error').map(l => l.text);
+    expect(errors).toEqual([]);
+  }
 });
