@@ -30,10 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with: { version: 11 }
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@39370e3970a6d050c480ff24fd8ce4e5527d288c # v4.1.0
         with: { node-version: 24, cache: pnpm }
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
@@ -55,10 +55,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with: { version: 11 }
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@39370e3970a6d050c480ff24fd8ce4e5527d288c # v4.1.0
         with: { node-version: 24, cache: pnpm }
       - name: Install dependencies (frozen lockfile)
         run: pnpm install --frozen-lockfile
@@ -71,11 +71,11 @@ jobs:
       # points at entry.mjs and ../client, so the build output is already the
       # deployable config: no pre-deploy rewriting step is needed.
       - name: Deploy Worker to Cloudflare
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@b708d70b0cc82da88dcb458a2d1d36d407ff582d # v3.13.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.127.1"
+          wranglerVersion: "4.154.0"
           command: deploy --config dist/server/wrangler.json
 
   # Fase 4: Smoke against the deployed worker (replaces scripts/deploy-smoke.sh,
@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     if: success()
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: { fetch-depth: 0 }
       - run: |
           VERSION=$(node -p "require('./package.json').version")
